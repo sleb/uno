@@ -1,18 +1,39 @@
-import { Button, Flex } from "@mantine/core";
+import { Anchor, AppShell, Button, Container, Group } from "@mantine/core";
 import { signOut } from "firebase/auth";
-import { Outlet } from "react-router-dom";
+import { FaSignOutAlt } from "react-icons/fa";
+import { Link, Outlet } from "react-router-dom";
 import { auth } from "@/firebase";
-import { useUser } from "@/hooks/user";
+import { UNO_ICON_COLOR } from "@/theme";
+import { UnoLogo } from "./common";
 
 const Layout = () => {
-  const { uid } = useUser();
   return (
-    <Flex direction="column" w="100%" h="100vh" gap={10}>
-      <Button variant="transparent" onClick={() => signOut(auth)}>
-        Log out ({uid})
-      </Button>
-      <Outlet />
-    </Flex>
+    <AppShell header={{ height: 70 }} padding="md">
+      <AppShell.Header>
+        <Container size="xl" h="100%">
+          <Group h="100%" justify="space-between" align="center">
+            <Anchor component={Link} to="/dashboard">
+              <UnoLogo size={32} />
+            </Anchor>
+            <Group gap="md">
+              <Button
+                variant="subtle"
+                leftSection={<FaSignOutAlt color={UNO_ICON_COLOR} />}
+                onClick={() => signOut(auth)}
+              >
+                Log out
+              </Button>
+            </Group>
+          </Group>
+        </Container>
+      </AppShell.Header>
+
+      <AppShell.Main>
+        <Container size="xl">
+          <Outlet />
+        </Container>
+      </AppShell.Main>
+    </AppShell>
   );
 };
 
