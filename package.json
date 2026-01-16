@@ -1,0 +1,9 @@
+{
+  "name": "uno",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11"
+  }
+}
