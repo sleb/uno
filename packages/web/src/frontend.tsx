@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { theme } from "./theme";
 import "@mantine/core/styles.css";
+import "@fontsource/russo-one";
 
 const elem = document.getElementById("root");
 if (!elem) {

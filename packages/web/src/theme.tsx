@@ -67,10 +67,10 @@ export const theme = createTheme({
     deg: 90,
   },
   fontFamily:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "'Russo One', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   headings: {
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "'Russo One', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontWeight: "900",
   },
   components: {
@@ -92,7 +92,8 @@ export const theme = createTheme({
 
 // UNO brand gradient for titles/logos
 export const unoBrandGradient = {
-  background: "linear-gradient(45deg, #e74c3c, #3498db, #2ecc71, #f39c12)",
+  background:
+    "repeating-linear-gradient(45deg, #e74c3c 0% 10%, #3498db 10% 20%, #2ecc71 20% 30%, #f39c12 30% 40%)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
   backgroundClip: "text",

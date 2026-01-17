@@ -9,10 +9,11 @@
     "start": "NODE_ENV=production bun src/index.ts"
   },
   "dependencies": {
-    "@uno/shared": "workspace:*",
+    "@fontsource/russo-one": "^5.2.7",
     "@mantine/core": "^8.3.12",
     "@mantine/form": "^8.3.12",
     "@mantine/hooks": "^8.3.12",
+    "@uno/shared": "workspace:*",
     "firebase": "^12.8.0",
     "react": "^19",
     "react-dom": "^19",
