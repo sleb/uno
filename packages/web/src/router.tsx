@@ -5,6 +5,8 @@ import HomePage from "./components/home/home-page";
 import Layout from "./components/layout";
 import LobbyPage from "./components/lobby/lobby-page";
 import LoginPage from "./components/login/login-page";
+import ProfileRequired from "./components/profile-required";
+import ProfilePage from "./components/profile/profile-page";
 
 export const router = createBrowserRouter([
   {
@@ -16,10 +18,16 @@ export const router = createBrowserRouter([
         element: <AuthRequired />,
         children: [
           {
-            element: <Layout />,
+            element: <ProfileRequired />,
             children: [
-              { path: "dashboard", element: <DashboardPage /> },
-              { path: "lobby", element: <LobbyPage /> },
+              {
+                element: <Layout />,
+                children: [
+                  { path: "dashboard", element: <DashboardPage /> },
+                  { path: "lobby", element: <LobbyPage /> },
+                  { path: "profile", element: <ProfilePage /> },
+                ],
+              },
             ],
           },
         ],

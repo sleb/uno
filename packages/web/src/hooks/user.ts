@@ -1,11 +1,11 @@
+import { ProfileContext } from "@/context/profile";
 import type { User } from "@uno/shared";
 import { useContext } from "react";
-import { AuthContext } from "@/context/auth";
 
 export const useUser = (): User => {
-  const uid = useContext(AuthContext);
-  if (!uid) {
-    throw new Error("useUser must be used within an AuthProvider");
+  const user = useContext(ProfileContext);
+  if (!user) {
+    throw new Error("useUser must be used within a ProfileContext provider");
   }
-  return { uid };
+  return user;
 };

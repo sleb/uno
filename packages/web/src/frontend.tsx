@@ -1,22 +1,27 @@
+import "@fontsource/russo-one";
 import { MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { theme } from "./theme";
-import "@mantine/core/styles.css";
-import "@fontsource/russo-one";
 
 const elem = document.getElementById("root");
 if (!elem) {
   throw new Error("Root element not found");
 }
 
+const queryClient = new QueryClient();
+
 const app = (
   <StrictMode>
-    <MantineProvider theme={theme}>
-      <RouterProvider router={router} />
-    </MantineProvider>
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider theme={theme}>
+        <RouterProvider router={router} />
+      </MantineProvider>
+    </QueryClientProvider>
   </StrictMode>
 );
 
