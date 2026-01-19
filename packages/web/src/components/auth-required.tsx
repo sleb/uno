@@ -26,7 +26,7 @@ const AuthRequired = () => {
   }
 
   if (!uid) {
-    return <Navigate to="/login" state={{ from: location.pathname }} />;
+    return <Navigate to="/" state={{ from: location.pathname }} />;
   }
 
   return (

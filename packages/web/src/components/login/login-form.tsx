@@ -1,8 +1,8 @@
-import { Button, Flex } from "@mantine/core";
+import { auth } from "@/firebase";
+import { Button } from "@mantine/core";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { useLocation, useNavigate } from "react-router-dom";
-import { auth } from "@/firebase";
 
 const LoginForm = () => {
   const { state } = useLocation();
@@ -18,15 +18,14 @@ const LoginForm = () => {
   };
 
   return (
-    <Flex direction="column" gap={10}>
-      <Button
-        leftSection={<FcGoogle fontSize="1.5rem" />}
-        variant="outline"
-        onClick={signInWithGoogle}
-      >
-        Sign in with Google
-      </Button>
-    </Flex>
+    <Button
+      leftSection={<FcGoogle fontSize="1.5rem" />}
+      variant="outline"
+      onClick={signInWithGoogle}
+      size="lg"
+    >
+      Sign in with Google
+    </Button>
   );
 };
 

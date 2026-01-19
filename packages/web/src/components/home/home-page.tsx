@@ -1,21 +1,31 @@
+import { auth } from "@/firebase";
 import {
   Button,
   Card,
   Center,
   Container,
-  Group,
   SimpleGrid,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
+import { useEffect, useState } from "react";
 import { FaGamepad, FaGlassCheers, FaPlay, FaUsers } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UNO_ICON_COLOR } from "../../theme";
 import { UnoLogo } from "../common";
+import LoginForm from "../login/login-form";
 
 const HomePage = () => {
+  const [uid, setUid] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    auth.authStateReady().then(() => {
+      const user = auth.currentUser;
+      setUid(user ? user.uid : null);
+    });
+  }, []);
 
   return (
     <Container size="lg" py="xl">
@@ -33,15 +43,20 @@ const HomePage = () => {
 
         {/* Call to Action Buttons */}
         <Center>
-          <Button
-            size="lg"
-            leftSection={<FaPlay />}
-            onClick={() => navigate("/login")}
-            variant="gradient"
-            gradient={{ from: "blue", to: "cyan", deg: 90 }}
-          >
-            Get Started
-          </Button>
+          {uid ? (
+            <Button
+              component={Link}
+              size="lg"
+              leftSection={<FaPlay />}
+              to="/dashboard"
+              variant="gradient"
+              gradient={{ from: "blue", to: "cyan", deg: 90 }}
+            >
+              Go to Dashboard
+            </Button>
+          ) : (
+            <LoginForm />
+          )}
         </Center>
 
         {/* Features Section */}
@@ -85,41 +100,6 @@ const HomePage = () => {
             </Stack>
           </Card>
         </SimpleGrid>
-
-        {/* How It Works */}
-        <Stack gap="md" mt="xl">
-          <Title order={2} ta="center">
-            How It Works
-          </Title>
-          <Card>
-            <Stack gap="md">
-              <Group gap="sm">
-                <Text fw={700} c="blue" size="xl">
-                  1.
-                </Text>
-                <Text>Create an account or sign in</Text>
-              </Group>
-              <Group gap="sm">
-                <Text fw={700} c="blue" size="xl">
-                  2.
-                </Text>
-                <Text>Create a new game or join an existing one</Text>
-              </Group>
-              <Group gap="sm">
-                <Text fw={700} c="blue" size="xl">
-                  3.
-                </Text>
-                <Text>Play your turn whenever it's convenient for you</Text>
-              </Group>
-              <Group gap="sm">
-                <Text fw={700} c="blue" size="xl">
-                  4.
-                </Text>
-                <Text>Get notified when it's your turn to play</Text>
-              </Group>
-            </Stack>
-          </Card>
-        </Stack>
       </Stack>
     </Container>
   );

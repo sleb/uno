@@ -29,7 +29,7 @@ const Layout = () => {
       <AppShell.Header>
         <Container size="xl" h="100%">
           <Group h="100%" justify="space-between" align="center">
-            <Anchor component={Link} to="/dashboard">
+            <Anchor component={Link} to="/">
               <UnoLogo size={32} />
             </Anchor>
 

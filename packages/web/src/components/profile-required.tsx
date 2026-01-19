@@ -1,10 +1,10 @@
+import CreateProfilePage from "@/components/create-profile/create-profile-page";
 import { ProfileContext } from "@/context/profile";
 import { useUid } from "@/hooks/uid";
 import { profileService } from "@/service/profile-service";
 import type { User } from "@uno/shared";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import CreateProfilePage from "./create-profile/create-profile-page";
 
 const ProfileRequired = () => {
   const [loading, setLoading] = useState(true);

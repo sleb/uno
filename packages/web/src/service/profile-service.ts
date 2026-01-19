@@ -40,7 +40,6 @@ class ProfileService {
     doc(this.db, "users", uid).withConverter(profileConverter);
 }
 
-console.log("Initializing profile service");
 export const profileService = new ProfileService(db);
 
 const profileConverter: FirestoreDataConverter<User, UserData> = {
