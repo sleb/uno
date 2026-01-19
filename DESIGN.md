@@ -30,21 +30,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 2. Authentication Page (`/auth`)
-
-**Purpose**: User login and registration
-
-**Features**:
-
-- Email/password authentication
-- Google sign-in option
-- Anonymous guest play option
-- Account creation form
-- Password recovery
-
----
-
-### 3. Dashboard (`/dashboard`)
+### 2. Dashboard (`/dashboard`)
 
 **Purpose**: Main hub after authentication
 
@@ -59,7 +45,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 4. Game Lobby (`/lobby`)
+### 3. Game Lobby (`/lobby`)
 
 **Purpose**: Browse and join available games
 
@@ -75,7 +61,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 5. Game Room (`/game/:gameId`)
+### 4. Game Room (`/game/:gameId`)
 
 **Purpose**: The main game interface where Uno is played
 
@@ -101,7 +87,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 6. Profile Page (`/profile/:userId`)
+### 5. Profile Page (`/profile/:userId`)
 
 **Purpose**: View player statistics and game history
 
@@ -118,7 +104,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 7. Rules Page (`/rules`)
+### 6. Rules Page (`/rules`)
 
 **Purpose**: Explain Uno game rules
 
