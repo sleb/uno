@@ -1,7 +1,7 @@
 import CreateProfilePage from "@/components/create-profile/create-profile-page";
 import { ProfileContext } from "@/context/profile";
 import { useUid } from "@/hooks/uid";
-import { profileService } from "@/service/profile-service";
+import { onProfileChange } from "@/service/profile-service";
 import type { User } from "@uno/shared";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
@@ -12,7 +12,7 @@ const ProfileRequired = () => {
   const uid = useUid();
 
   useEffect(() => {
-    return profileService.onProfileChange(uid, (data) => {
+    return onProfileChange(uid, (data) => {
       setUser(data);
       setLoading(false);
     });

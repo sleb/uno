@@ -1,4 +1,4 @@
-import { profileService } from "@/service/profile-service";
+import { updateProfile } from "@/service/profile-service";
 import { Button, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 
@@ -22,12 +22,10 @@ const EditableDisplayName = ({
   const handleSaveName = () => {
     if (!newDisplayName) return;
     setSubmitting(true);
-    profileService
-      .updateProfile(userId, { displayName: newDisplayName })
-      .finally(() => {
-        setSubmitting(false);
-        setEditingName(false);
-      });
+    updateProfile(userId, { displayName: newDisplayName }).finally(() => {
+      setSubmitting(false);
+      setEditingName(false);
+    });
   };
 
   const handleCancelName = () => {

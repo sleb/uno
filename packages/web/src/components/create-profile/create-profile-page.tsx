@@ -1,6 +1,6 @@
 import { PRESET_AVATARS } from "@/constants/preset-avatars";
 import { useUid } from "@/hooks/uid";
-import { profileService } from "@/service/profile-service";
+import { createProfile } from "@/service/profile-service";
 import { UNO_ICON_COLOR } from "@/theme";
 import {
   Avatar,
@@ -26,9 +26,7 @@ const CreateProfilePage = () => {
   const uid = useUid();
 
   const handleSubmit = (form: FormValues) => {
-    profileService
-      .createProfile(uid, UserDataSchema.parse(form))
-      .catch(console.error);
+    createProfile(uid, UserDataSchema.parse(form)).catch(console.error);
   };
 
   const { onSubmit, getInputProps, key } = useForm<FormValues>({

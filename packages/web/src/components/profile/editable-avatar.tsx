@@ -1,5 +1,5 @@
 import { PRESET_AVATARS } from "@/constants/preset-avatars";
-import { profileService } from "@/service/profile-service";
+import { updateProfile } from "@/service/profile-service";
 import { Avatar, Button, Group, Select, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 
@@ -16,12 +16,10 @@ const EditableAvatar = ({ avatar, userId }: EditableAvatarProps) => {
   const handleSaveAvatar = () => {
     if (!selectedAvatar) return;
     setSubmitting(true);
-    profileService
-      .updateProfile(userId, { avatar: selectedAvatar })
-      .finally(() => {
-        setSubmitting(false);
-        setEditing(false);
-      });
+    updateProfile(userId, { avatar: selectedAvatar }).finally(() => {
+      setSubmitting(false);
+      setEditing(false);
+    });
   };
 
   const handleCancelAvatar = () => {
