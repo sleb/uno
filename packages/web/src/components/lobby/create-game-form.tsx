@@ -1,3 +1,4 @@
+import { createGame } from "@/service/game-service";
 import { UNO_ICON_COLOR } from "@/theme";
 import {
   Button,
@@ -11,88 +12,174 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useState } from "react";
+import { useForm } from "@mantine/form";
+import { HouseRuleSchema } from "node_modules/@uno/shared/src/types";
 import { FaGlobe, FaLock, FaPlus, FaUsers } from "react-icons/fa";
 
-const CreateGameForm = () => {
-  const [isPublic, setIsPublic] = useState(true);
-  const [maxPlayers, setMaxPlayers] = useState("4");
-
-  const handleCreateGame = () => {
-    // TODO: Implement game creation logic
-    console.log("Creating game...", { isPublic, maxPlayers });
+type FormValues = {
+  isPublic: boolean;
+  maxPlayers: number;
+  houseRules: {
+    stacking: boolean;
+    jumpIn: boolean;
+    sevenSwap: boolean;
+    zeroRotation: boolean;
+    drawToMatch: boolean;
   };
+};
+
+const CreateGameForm = () => {
+  const handleSubmit = ({ houseRules, isPublic, maxPlayers }: FormValues) => {
+    createGame({
+      isPrivate: !isPublic,
+      maxPlayers,
+      houseRules: Object.entries(houseRules)
+        .filter(([, enabled]) => enabled)
+        .map(([rule]) => HouseRuleSchema.parse(rule)),
+    }).catch(console.error);
+  };
+
+  const { onSubmit, getValues, setFieldValue, key } = useForm<FormValues>({
+    initialValues: {
+      isPublic: true,
+      maxPlayers: 4,
+      houseRules: {
+        stacking: false,
+        jumpIn: false,
+        sevenSwap: false,
+        zeroRotation: false,
+        drawToMatch: false,
+      },
+    },
+    mode: "uncontrolled",
+  });
+
+  const isPublic = getValues().isPublic;
 
   return (
     <Center>
-      <Card w={{ base: "100%", sm: 500 }}>
-        <Stack gap="lg">
-          <Title order={3} size="h4">
-            Game Settings
-          </Title>
+      <form onSubmit={onSubmit(handleSubmit)}>
+        <Card w={{ base: "100%", sm: 500 }}>
+          <Stack gap="lg">
+            <Title order={3} size="h4">
+              Game Settings
+            </Title>
 
-          {/* Public/Private Toggle */}
-          <Stack gap="xs">
-            <Group gap="sm">
-              {isPublic ? (
-                <FaGlobe color={UNO_ICON_COLOR} />
-              ) : (
-                <FaLock color={UNO_ICON_COLOR} />
-              )}
-              <Text fw={500}>Game Type</Text>
-            </Group>
-            <Radio.Group
-              value={isPublic.toString()}
-              onChange={(v) => setIsPublic(v === "true")}
-            >
-              <Stack gap="xs">
-                <Radio value="true" label="Public - Anyone can join" />
-                <Radio value="false" label="Private - Invite only" />
-              </Stack>
-            </Radio.Group>
-          </Stack>
-
-          {/* Number of Players */}
-          <Stack gap="xs">
-            <Group gap="sm">
-              <FaUsers color={UNO_ICON_COLOR} />
-              <Text fw={500}>Maximum Players</Text>
-            </Group>
-            <Radio.Group value={maxPlayers} onChange={setMaxPlayers}>
-              <Group gap="md">
-                <Radio value="2" label="2 Players" />
-                <Radio value="3" label="3 Players" />
-                <Radio value="4" label="4 Players" />
+            {/* Public/Private Toggle */}
+            <Stack gap="xs">
+              <Group gap="sm">
+                {isPublic ? (
+                  <FaGlobe color={UNO_ICON_COLOR} />
+                ) : (
+                  <FaLock color={UNO_ICON_COLOR} />
+                )}
+                <Text fw={500}>Game Type</Text>
               </Group>
-            </Radio.Group>
-          </Stack>
-
-          <Divider />
-
-          {/* House Rules */}
-          <Stack gap="md">
-            <Text fw={500}>House Rules</Text>
-            <Stack gap="sm">
-              <Switch label="Stacking (+2 and +4 cards)" />
-              <Switch label="Jump In (play identical card out of turn)" />
-              <Switch label="Seven Swap (playing 7 swaps hands)" />
-              <Switch label="Zero Rotation (playing 0 rotates hands)" />
-              <Switch label="Draw to Match (must draw until playable card)" />
+              <Radio.Group
+                key={key("isPublic")}
+                value={isPublic.toString()}
+                onChange={(v) => setFieldValue("isPublic", v === "true")}
+              >
+                <Stack gap="xs">
+                  <Radio value="true" label="Public - Anyone can join" />
+                  <Radio value="false" label="Private - Invite only" />
+                </Stack>
+              </Radio.Group>
             </Stack>
-          </Stack>
 
-          <Button
-            fullWidth
-            size="lg"
-            leftSection={<FaPlus />}
-            variant="gradient"
-            gradient={{ from: "blue", to: "cyan", deg: 90 }}
-            onClick={handleCreateGame}
-          >
-            Create Game
-          </Button>
-        </Stack>
-      </Card>
+            {/* Number of Players */}
+            <Stack gap="xs">
+              <Group gap="sm">
+                <FaUsers color={UNO_ICON_COLOR} />
+                <Text fw={500}>Maximum Players</Text>
+              </Group>
+              <Radio.Group
+                key={key("maxPlayers")}
+                value={getValues().maxPlayers.toString()}
+                onChange={(v) => setFieldValue("maxPlayers", Number(v))}
+              >
+                <Group gap="md">
+                  <Radio value="2" label="2 Players" />
+                  <Radio value="3" label="3 Players" />
+                  <Radio value="4" label="4 Players" />
+                </Group>
+              </Radio.Group>
+            </Stack>
+
+            <Divider />
+
+            {/* House Rules */}
+            <Stack gap="md">
+              <Text fw={500}>House Rules</Text>
+              <Stack gap="sm">
+                <Switch
+                  key={key("houseRules.stacking")}
+                  label="Stacking (+2 and +4 cards)"
+                  checked={getValues().houseRules.stacking}
+                  onChange={(e) =>
+                    setFieldValue(
+                      "houseRules.stacking",
+                      e.currentTarget.checked,
+                    )
+                  }
+                />
+                <Switch
+                  key={key("houseRules.jumpIn")}
+                  label="Jump In (play identical card out of turn)"
+                  checked={getValues().houseRules.jumpIn}
+                  onChange={(e) =>
+                    setFieldValue("houseRules.jumpIn", e.currentTarget.checked)
+                  }
+                />
+                <Switch
+                  key={key("houseRules.sevenSwap")}
+                  label="Seven Swap (playing 7 swaps hands)"
+                  checked={getValues().houseRules.sevenSwap}
+                  onChange={(e) =>
+                    setFieldValue(
+                      "houseRules.sevenSwap",
+                      e.currentTarget.checked,
+                    )
+                  }
+                />
+                <Switch
+                  key={key("houseRules.zeroRotation")}
+                  label="Zero Rotation (playing 0 rotates hands)"
+                  checked={getValues().houseRules.zeroRotation}
+                  onChange={(e) =>
+                    setFieldValue(
+                      "houseRules.zeroRotation",
+                      e.currentTarget.checked,
+                    )
+                  }
+                />
+                <Switch
+                  key={key("houseRules.drawToMatch")}
+                  label="Draw to Match (must draw until playable card)"
+                  checked={getValues().houseRules.drawToMatch}
+                  onChange={(e) =>
+                    setFieldValue(
+                      "houseRules.drawToMatch",
+                      e.currentTarget.checked,
+                    )
+                  }
+                />
+              </Stack>
+            </Stack>
+
+            <Button
+              type="submit"
+              fullWidth
+              size="lg"
+              leftSection={<FaPlus />}
+              variant="gradient"
+              gradient={{ from: "blue", to: "cyan", deg: 90 }}
+            >
+              Create Game
+            </Button>
+          </Stack>
+        </Card>
+      </form>
     </Center>
   );
 };

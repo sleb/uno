@@ -23,6 +23,27 @@
     "singleProjectMode": true,
     "firestore": {
       "port": 8080
+    },
+    "functions": {
+      "port": 5001
     }
-  }
+  },
+  "functions": [
+    {
+      "source": "packages/functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "cd \"$RESOURCE_DIR\" && bun lint",
+        "cd \"$RESOURCE_DIR\" && bun run build"
+      ]
+    }
+  ]
 }

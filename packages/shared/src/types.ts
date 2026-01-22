@@ -33,6 +33,14 @@ export const CardSchema = z.discriminatedUnion("value", [
   }),
 ]);
 
+export const HouseRuleSchema = z.enum([
+  "stacking",
+  "jumpIn",
+  "sevenSwap",
+  "drawToMatch",
+  "zeroRotation",
+]);
+
 export const GameDataSchema = z.object({
   createdAt: z.iso.datetime(),
   startedAt: z.iso.datetime().nullable().default(null),
@@ -40,17 +48,7 @@ export const GameDataSchema = z.object({
   config: z.object({
     isPrivate: z.boolean().default(false),
     maxPlayers: z.number().min(2).max(10).default(4),
-    houseRules: z
-      .set(
-        z.enum([
-          "Stacking",
-          "JumpIn",
-          "SevenSwap",
-          "DrawToMatch",
-          "ZeroRotate",
-        ]),
-      )
-      .default(new Set()),
+    houseRules: z.array(HouseRuleSchema),
   }),
   players: z.array(z.string()).default([]),
   state: z.object({
@@ -75,6 +73,16 @@ export const GameSchema = GameDataSchema.extend({
   id: z.string(),
 });
 
+export const CreateGameRequestSchema = z.object({
+  isPrivate: z.boolean(),
+  maxPlayers: z.number().min(2).max(4),
+  houseRules: z.array(HouseRuleSchema),
+});
+
+export const CreateGameResponseSchema = z.object({
+  gameId: z.string(),
+});
+
 export type UserData = z.infer<typeof UserDataSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type GameData = z.infer<typeof GameDataSchema>;
@@ -82,3 +90,6 @@ export type Game = z.infer<typeof GameSchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
+export type CreateGameRequest = z.infer<typeof CreateGameRequestSchema>;
+export type CreateGameResponse = z.infer<typeof CreateGameResponseSchema>;
+export type HouseRule = z.infer<typeof HouseRuleSchema>;
