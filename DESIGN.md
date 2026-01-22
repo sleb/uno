@@ -125,7 +125,6 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 /users/{userId}
 /games/{gameId}
 /games/{gameId}/players/{playerId}
-/games/{gameId}/cards/{cardId}
 ```
 
 ---
@@ -208,13 +207,12 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
     currentTurn: string,       // userId of current player
     turnOrder: string[],       // Array of userIds in turn order
     direction: number,         // 1 for clockwise, -1 for counter-clockwise
-    drawPileCount: number,     // Cards remaining in draw pile
-    lastPlayedCard: {          // Top card of discard pile
+    deckSeed: string,          // Random seed for deck generation (updated on reshuffle)
+    drawPileCount: number,     // Cards remaining in draw pile (computed)
+    discardPile: [{            // Full discard pile history (last played at end)
       color: string,           // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
       value: string,           // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
-      playedBy: string,        // userId who played it
-      playedAt: timestamp,
-    },
+    }],
     currentColor: string,      // Active color (important for wild cards)
     mustDraw: number,          // Pending draw count (for stacking +2/+4)
     turnStartedAt: timestamp,  // When current turn began
@@ -274,7 +272,6 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
   // Cards in hand (visible only to owner via security rules)
   hand: [{
-    cardId: string,            // Unique card identifier
     color: string,             // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
     value: string,             // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
   }],
@@ -293,42 +290,46 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ---
 
-### 4. Game Cards Subcollection (`/games/{gameId}/cards/{cardId}`)
+### 4. Card Management
 
-**Document ID**: Auto-generated card ID
+**No separate cards subcollection** - cards are stored directly as data objects within game and player documents.
 
-**Schema**:
+**Card object structure**:
 
 ```javascript
 {
-  cardId: string,              // Unique identifier
   color: string,               // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
   value: string,               // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
-
-  // Card location
-  location: string,            // 'draw_pile' | 'discard_pile' | 'player_hand'
-  ownerId: string | null,      // userId if in player's hand, null otherwise
-
-  // Card history
-  playedBy: string | null,     // Last userId who played this card
-  playedAt: timestamp | null,  // When last played
-  position: number,            // Position in pile/hand (for ordering)
 }
 ```
 
-**Note**: This subcollection may be optional - cards could be managed entirely in Cloud Functions and only the relevant game state exposed in the main game document and player documents.
+**Draw pile representation**: The draw pile is computed implicitly rather than stored. When a player draws:
 
----
+1. Build the canonical 108-card Uno deck in memory.
+2. Remove all cards present in `state.discardPile` across all game documents.
+3. Remove all cards in every player's `hand` array.
+4. Use `state.deckSeed` to deterministically shuffle the remaining available cards.
+5. Select the first card from the shuffled result.
+6. Add the selected card to the player's hand and update `cardCount`.
 
-### Alternative: Simplified Card Management
+**Reshuffling**: When the draw pile is exhausted (no cards available):
 
-Instead of a separate cards subcollection, cards could be managed as arrays within the game and player documents:
+1. Keep only the top card of `state.discardPile` (the currently active discard).
+2. Move all other discard pile cards back into the available pool.
+3. Generate a new random `deckSeed` and update `state.deckSeed`.
+4. Continue drawing from the newly available cards.
 
-- **Draw pile**: Array of card objects in `/games/{gameId}` (shuffled, not exposed to clients)
-- **Discard pile**: Array of card objects in `/games/{gameId}` (or just the last card)
-- **Player hands**: Array of card objects in `/games/{gameId}/players/{playerId}`
+This approach:
+- Avoids persisting and shuffling a deck upfront
+- Guarantees card uniqueness across the game
+- Provides deterministic randomization via seed (useful for debugging/replay)
+- Handles deck exhaustion gracefully with automatic reshuffling
+- Simplifies game state (no separate card tracking)
+- Makes it impossible for cards to be duplicated or lost
 
-This approach would be simpler but less flexible for analytics and game history.
+**Discard pile**: Stored as an ordered array in `state.discardPile` with the most recently played card at the end of the array. The top card is `discardPile[discardPile.length - 1]`.
+
+**Player hands**: Stored as arrays of card objects in each player document's `hand` field, visible only to that player via security rules.
 
 ---
 
@@ -339,17 +340,18 @@ This approach would be simpler but less flexible for analytics and game history.
 1. User clicks "Create Game" on dashboard
 2. Cloud Function creates new document in `/games`
 3. Cloud Function creates player document in `/games/{gameId}/players/{userId}`
-4. Cloud Function initializes draw pile and deals cards
-5. Cloud Function updates `/users/{userId}/activeGames`
+4. Cloud Function deals initial cards to each player's `hand` array
+5. Cloud Function sets first discard pile card
+6. Cloud Function updates `/users/{userId}/activeGames`
 
 ### Playing a Turn
 
 1. Player selects card from hand
 2. Client validates card is playable (local check)
-3. Client calls Cloud Function `playCard(gameId, cardId, selectedColor?)`
+3. Client calls Cloud Function `playCard(gameId, cardIndex, selectedColor?)`
 4. Cloud Function validates move (authoritative check)
 5. Cloud Function updates:
-   - `/games/{gameId}` (state, lastPlayedCard, currentTurn)
+   - `/games/{gameId}` (state.discardPile, currentTurn)
    - `/games/{gameId}/players/{userId}` (hand, cardCount, stats)
    - `/users/{nextPlayerId}` (trigger notification)
 6. Other players receive real-time updates via Firestore listeners

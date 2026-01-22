@@ -23,6 +23,10 @@ const gameRef = (gameId: string) => gamesRef().doc(gameId);
 
 const DECK_SIZE = 108;
 
+const generateDeckSeed = (): string => {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
 export const createGame = async (
   hostId: string,
   { isPrivate, houseRules, maxPlayers }: CreateGameRequest,
@@ -40,6 +44,7 @@ export const createGame = async (
       status: "waiting",
       currentTurnPlayerId: null,
       direction: "clockwise",
+      deckSeed: generateDeckSeed(),
       drawPileCount: DECK_SIZE,
       discardPile: [],
     },

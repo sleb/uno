@@ -55,6 +55,7 @@ export const GameDataSchema = z.object({
     status: z.enum(["waiting", "in-progress", "completed"]),
     currentTurnPlayerId: z.string().nullable().default(null),
     direction: z.enum(["clockwise", "counter-clockwise"]),
+    deckSeed: z.string(),
     drawPileCount: z.number(),
     discardPile: z.array(CardSchema),
   }),
