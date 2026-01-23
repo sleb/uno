@@ -74,7 +74,9 @@ const PlayersSection = ({ game, currentUserId }: PlayersSectionProps) => {
                       >
                         {index + 1}
                       </Badge>
-                      <Avatar src={player.avatar} size="md" radius="xl" />
+                      <Avatar size="md" radius="xl">
+                        {player.avatar}
+                      </Avatar>
                       <Box>
                         <Text fw={500}>
                           {player.userId === currentUserId
