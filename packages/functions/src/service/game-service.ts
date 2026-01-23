@@ -1,27 +1,60 @@
-import type { CreateGameRequest, Game, GameData } from "@uno/shared";
 import {
-  QueryDocumentSnapshot,
-  type FirestoreDataConverter,
+  type CreateGameRequest,
+  type GameData,
+  GameDataSchema,
+  type UserData,
+  UserDataSchema,
+} from "@uno/shared";
+import type {
+  DocumentReference,
+  DocumentSnapshot,
+  Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
 
-const gameConverter: FirestoreDataConverter<GameData, GameData> = {
-  toFirestore(gameData: Game): GameData {
-    return gameData;
-  },
-  fromFirestore(snapshot: QueryDocumentSnapshot<GameData>): Game {
-    return {
-      id: snapshot.id,
-      ...snapshot.data(),
-    };
-  },
+const DECK_SIZE = 108;
+
+const getDoc = async (
+  ref: DocumentReference,
+  t?: Transaction,
+): Promise<DocumentSnapshot> => {
+  return await (t ? t.get(ref) : ref.get());
 };
 
-const gamesRef = () => db.collection("games").withConverter(gameConverter);
+const gamesRef = () => db.collection("games");
+const usersRef = () => db.collection("users");
+const playersRef = (gameId: string) =>
+  gamesRef().doc(gameId).collection("players");
 
 const gameRef = (gameId: string) => gamesRef().doc(gameId);
+const userRef = (userId: string) => usersRef().doc(userId);
+const playerRef = (gameId: string, userId: string) =>
+  playersRef(gameId).doc(userId);
 
-const DECK_SIZE = 108;
+const newGameRef = () => gamesRef().doc();
+
+const getGame = async (gameId: string, t?: Transaction): Promise<GameData> => {
+  const snapshot = await getDoc(gameRef(gameId), t);
+
+  if (!snapshot.exists) {
+    throw new Error(`Game ${gameId} not found`);
+  }
+
+  return GameDataSchema.parse(snapshot.data());
+};
+
+const getUser = async (
+  userId: string,
+  transaction?: Transaction,
+): Promise<UserData> => {
+  const snapshot = await getDoc(userRef(userId), transaction);
+
+  if (!snapshot.exists) {
+    throw new Error(`User ${userId} not found`);
+  }
+
+  return UserDataSchema.parse(snapshot.data());
+};
 
 const generateDeckSeed = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -31,15 +64,18 @@ export const createGame = async (
   hostId: string,
   { isPrivate, houseRules, maxPlayers }: CreateGameRequest,
 ): Promise<string> => {
-  const gameDocRef = await gamesRef().add({
-    createdAt: new Date().toISOString(),
-    lastActivityAt: new Date().toISOString(),
+  const gameDocRef = newGameRef();
+  const now = new Date().toISOString();
+
+  await gameDocRef.set({
+    createdAt: now,
+    lastActivityAt: now,
     config: {
       isPrivate,
       houseRules,
       maxPlayers,
     },
-    players: [hostId],
+    players: [],
     state: {
       status: "waiting",
       currentTurnPlayerId: null,
@@ -50,5 +86,38 @@ export const createGame = async (
     },
     startedAt: null,
   });
+
+  await addPlayerToGame(gameDocRef.id, hostId);
+
   return gameDocRef.id;
+};
+
+export const addPlayerToGame = async (gameId: string, userId: string) => {
+  db.runTransaction(async (t) => {
+    const {
+      players,
+      config: { maxPlayers },
+    } = await getGame(gameId, t);
+    const { avatar, displayName } = await getUser(userId, t);
+
+    if (players.includes(userId)) {
+      console.log(`User ${userId} is already a player in game ${gameId}`);
+      return;
+    }
+
+    if (players.length >= maxPlayers) {
+      throw new Error(`Game ${gameId} is full`);
+    }
+
+    const updatedPlayers = [...players, userId];
+    t.update(gameRef(gameId), { players: updatedPlayers });
+
+    t.set(playerRef(gameId, userId), {
+      profile: {
+        avatar,
+        displayName,
+      },
+      hand: [],
+    });
+  });
 };

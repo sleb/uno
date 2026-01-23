@@ -1,9 +1,9 @@
-import { AuthContext } from "@/context/auth";
-import { auth } from "@/firebase";
 import { Text } from "@mantine/core";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { AuthContext } from "@/context/auth";
+import { auth } from "@/firebase";
 
 const AuthRequired = () => {
   const [uid, setUid] = useState<string | null>(null);

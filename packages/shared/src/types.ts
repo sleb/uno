@@ -74,6 +74,29 @@ export const GameSchema = GameDataSchema.extend({
   id: z.string(),
 });
 
+export const GamePlayerDataSchema = z.object({
+  userId: z.string(),
+  displayName: z.string(),
+  avatar: z.string(),
+  joinedAt: z.iso.datetime(),
+  position: z.number().min(0).max(9),
+  cardCount: z.number(),
+  hasCalledUno: z.boolean(),
+  status: z.enum(["waiting", "active", "winner", "forfeited"]),
+  lastActionAt: z.iso.datetime(),
+  hand: z.array(CardSchema),
+  gameStats: z.object({
+    cardsPlayed: z.number(),
+    cardsDrawn: z.number(),
+    turnsPlayed: z.number(),
+    specialCardsPlayed: z.number(),
+  }),
+});
+
+export const GamePlayerSchema = GamePlayerDataSchema.extend({
+  id: z.string(),
+});
+
 export const CreateGameRequestSchema = z.object({
   isPrivate: z.boolean(),
   maxPlayers: z.number().min(2).max(4),
@@ -91,6 +114,8 @@ export type Game = z.infer<typeof GameSchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
+export type GamePlayerData = z.infer<typeof GamePlayerDataSchema>;
+export type GamePlayer = z.infer<typeof GamePlayerSchema>;
 export type CreateGameRequest = z.infer<typeof CreateGameRequestSchema>;
 export type CreateGameResponse = z.infer<typeof CreateGameResponseSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;

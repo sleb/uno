@@ -1,4 +1,3 @@
-import { UNO_ICON_COLOR } from "@/theme";
 import {
   Button,
   Card,
@@ -11,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { FaGamepad, FaPlus, FaSearch, FaTimes } from "react-icons/fa";
+import { UNO_ICON_COLOR } from "@/theme";
 import CreateGameForm from "./create-game-form";
 
 const LobbyPage = () => {

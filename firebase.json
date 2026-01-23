@@ -1,11 +1,7 @@
 {
   "hosting": {
     "public": "packages/web/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -41,8 +37,8 @@
         "*.local"
       ],
       "predeploy": [
-        "cd \"$RESOURCE_DIR\" && bun lint",
-        "cd \"$RESOURCE_DIR\" && bun run build"
+        "cd packages/functions && bun lint",
+        "cd packages/functions && bun run build"
       ]
     }
   ]

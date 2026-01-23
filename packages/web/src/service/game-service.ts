@@ -1,18 +1,19 @@
-import { db, functions } from "@/firebase";
 import {
-  CreateGameResponseSchema,
-  GameSchema,
   type CreateGameRequest,
+  CreateGameResponseSchema,
   type Game,
   type GameData,
+  GameSchema,
 } from "@uno/shared";
 import {
   collection,
   doc,
-  QueryDocumentSnapshot,
   type FirestoreDataConverter,
+  onSnapshot,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
+import { db, functions } from "@/firebase";
 
 const gameConverter: FirestoreDataConverter<Game, GameData> = {
   toFirestore: (game: Game): GameData => game,
@@ -32,4 +33,17 @@ export const createGame = async (
   const response = await createGameFunction(request);
   const { gameId } = CreateGameResponseSchema.parse(response.data);
   return gameId;
+};
+
+export const onGameUpdate = (
+  gameId: string,
+  onUpdate: (game: Game) => void,
+): (() => void) => {
+  return onSnapshot(gameRef(gameId), (snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error(`Game ${gameId} not found`);
+    }
+    const game = snapshot.data();
+    onUpdate(game);
+  });
 };

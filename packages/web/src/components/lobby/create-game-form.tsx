@@ -1,5 +1,3 @@
-import { createGame } from "@/service/game-service";
-import { UNO_ICON_COLOR } from "@/theme";
 import {
   Button,
   Card,
@@ -15,6 +13,9 @@ import {
 import { useForm } from "@mantine/form";
 import { HouseRuleSchema } from "node_modules/@uno/shared/src/types";
 import { FaGlobe, FaLock, FaPlus, FaUsers } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { createGame } from "@/service/game-service";
+import { UNO_ICON_COLOR } from "@/theme";
 
 type FormValues = {
   isPublic: boolean;
@@ -29,6 +30,8 @@ type FormValues = {
 };
 
 const CreateGameForm = () => {
+  const navigate = useNavigate();
+
   const handleSubmit = ({ houseRules, isPublic, maxPlayers }: FormValues) => {
     createGame({
       isPrivate: !isPublic,
@@ -36,7 +39,9 @@ const CreateGameForm = () => {
       houseRules: Object.entries(houseRules)
         .filter(([, enabled]) => enabled)
         .map(([rule]) => HouseRuleSchema.parse(rule)),
-    }).catch(console.error);
+    })
+      .then((id) => navigate(`/game/${id}`))
+      .catch(console.error);
   };
 
   const { onSubmit, getValues, setFieldValue, key } = useForm<FormValues>({
