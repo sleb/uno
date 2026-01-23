@@ -80,11 +80,7 @@ interface WaitingLobbyProps {
 }
 
 const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
-  // Generate invite URL
   const inviteUrl = `${window.location.origin}/game/${game.id}`;
-
-  // Generate a shareable invite code (last 6 chars of game ID)
-  const inviteCode = game.id.slice(-6).toUpperCase();
 
   return (
     <Box p="md">
@@ -101,15 +97,6 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
               Waiting for players
             </Badge>
           </Group>
-          {game.config.isPrivate && (
-            <Badge
-              color="gray"
-              variant="light"
-              leftSection={<FaLink size={14} />}
-            >
-              Private Game
-            </Badge>
-          )}
         </Stack>
 
         {/* Invite Section */}
@@ -124,56 +111,9 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
 
             <Divider />
 
-            {/* Invite Code */}
             <Box>
               <Text size="sm" fw={500} mb="xs">
-                Game Code
-              </Text>
-              <Paper withBorder p="md" bg="gray.0" radius="md">
-                <Group justify="space-between" align="center">
-                  <Box>
-                    <Text
-                      size="xl"
-                      fw={700}
-                      ff="monospace"
-                      c="unoBlue.7"
-                      style={{ letterSpacing: "0.15em" }}
-                    >
-                      {inviteCode}
-                    </Text>
-                    <Text size="xs" c="dimmed" mt={4}>
-                      Share this code with friends to join
-                    </Text>
-                  </Box>
-                  <CopyButton value={inviteCode} timeout={2000}>
-                    {({ copied, copy }) => (
-                      <Tooltip
-                        label={copied ? "Copied!" : "Copy code"}
-                        withArrow
-                      >
-                        <ActionIcon
-                          color={copied ? "teal" : "unoBlue"}
-                          variant="light"
-                          onClick={copy}
-                          size="lg"
-                        >
-                          {copied ? (
-                            <FaCheck size={18} />
-                          ) : (
-                            <FaCopy size={18} />
-                          )}
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </CopyButton>
-                </Group>
-              </Paper>
-            </Box>
-
-            {/* Invite Link */}
-            <Box>
-              <Text size="sm" fw={500} mb="xs">
-                Direct Link
+                Share this link with friends to join
               </Text>
               <Paper withBorder p="md" bg="gray.0" radius="md">
                 <Group justify="space-between" align="center" wrap="nowrap">
