@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 import { useUser } from "@/hooks/user";
-import { onGameUpdate } from "@/service/game-service";
+import { joinGame, onGameUpdate } from "@/service/game-service";
 import PlayersSection from "./players-section";
 
 const GamePage = () => {
@@ -81,6 +81,24 @@ interface WaitingLobbyProps {
 
 const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
   const inviteUrl = `${window.location.origin}/game/${game.id}`;
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  const isPlayerInGame = game.players.includes(currentUserId);
+  const hasOpenSpots = game.players.length < game.config.maxPlayers;
+  const canJoin = !isPlayerInGame && hasOpenSpots;
+
+  const handleJoinGame = async () => {
+    setJoining(true);
+    setJoinError(null);
+    try {
+      await joinGame(game.id);
+    } catch (error) {
+      console.error("Error joining game:", error);
+      setJoinError("Failed to join game. Please try again.");
+      setJoining(false);
+    }
+  };
 
   return (
     <Box p="md">
@@ -212,18 +230,42 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
         </Card>
 
         {/* Action Buttons */}
+        {joinError && (
+          <Text c="red" size="sm" ta="center">
+            {joinError}
+          </Text>
+        )}
+
         <Group justify="space-between">
-          <Button variant="light" color="gray" size="lg">
-            Leave Game
-          </Button>
-          <Button
-            size="lg"
-            variant="gradient"
-            gradient={{ from: "unoGreen.5", to: "green", deg: 90 }}
-            disabled={game.players.length < 2}
-          >
-            Start Game
-          </Button>
+          {isPlayerInGame ? (
+            <>
+              <Button variant="light" color="gray" size="lg">
+                Leave Game
+              </Button>
+              <Button
+                size="lg"
+                variant="gradient"
+                gradient={{ from: "unoGreen.5", to: "green", deg: 90 }}
+                disabled={game.players.length < 2}
+              >
+                Start Game
+              </Button>
+            </>
+          ) : (
+            <>
+              <Box />
+              <Button
+                size="lg"
+                variant="gradient"
+                gradient={{ from: "unoBlue.4", to: "cyan", deg: 90 }}
+                disabled={!canJoin}
+                loading={joining}
+                onClick={handleJoinGame}
+              >
+                {hasOpenSpots ? "Join Game" : "Game Full"}
+              </Button>
+            </>
+          )}
         </Group>
       </Stack>
     </Box>

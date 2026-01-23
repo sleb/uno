@@ -9,14 +9,12 @@ import {
   GameSchema,
 } from "@uno/shared";
 import {
-  type CollectionReference,
   collection,
   doc,
   type FirestoreDataConverter,
   onSnapshot,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
-import type { DocumentReference } from "firebase/firestore/lite";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "@/firebase";
 
@@ -48,6 +46,11 @@ export const createGame = async (
   const response = await createGameFunction(request);
   const { gameId } = CreateGameResponseSchema.parse(response.data);
   return gameId;
+};
+
+const joinGameFunction = httpsCallable(functions, "joinGame");
+export const joinGame = async (gameId: string): Promise<void> => {
+  await joinGameFunction({ gameId });
 };
 
 export const onGameUpdate = (
