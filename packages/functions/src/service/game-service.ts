@@ -2,6 +2,7 @@ import {
   type CreateGameRequest,
   type GameData,
   GameDataSchema,
+  type GamePlayerData,
   type UserData,
   UserDataSchema,
 } from "@uno/shared";
@@ -112,12 +113,25 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
     const updatedPlayers = [...players, userId];
     t.update(gameRef(gameId), { players: updatedPlayers });
 
-    t.set(playerRef(gameId, userId), {
-      profile: {
-        avatar,
-        displayName,
-      },
+    const now = new Date().toISOString();
+    const playerData: GamePlayerData = {
+      userId,
+      displayName,
+      avatar,
+      joinedAt: now,
+      cardCount: 0,
+      hasCalledUno: false,
+      status: "waiting",
+      lastActionAt: now,
       hand: [],
-    });
+      gameStats: {
+        cardsPlayed: 0,
+        cardsDrawn: 0,
+        turnsPlayed: 0,
+        specialCardsPlayed: 0,
+      },
+    };
+
+    t.set(playerRef(gameId, userId), playerData);
   });
 };

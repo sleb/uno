@@ -79,7 +79,6 @@ export const GamePlayerDataSchema = z.object({
   displayName: z.string(),
   avatar: z.string(),
   joinedAt: z.iso.datetime(),
-  position: z.number().min(0).max(9),
   cardCount: z.number(),
   hasCalledUno: z.boolean(),
   status: z.enum(["waiting", "active", "winner", "forfeited"]),
