@@ -1,7 +1,3 @@
-import { PRESET_AVATARS } from "@/constants/preset-avatars";
-import { useUid } from "@/hooks/uid";
-import { createProfile } from "@/service/profile-service";
-import { UNO_ICON_COLOR } from "@/theme";
 import {
   Avatar,
   Button,
@@ -16,6 +12,11 @@ import {
 import { useForm } from "@mantine/form";
 import { UserDataSchema } from "@uno/shared";
 import { FaUser } from "react-icons/fa";
+import { PRESET_AVATARS } from "@/constants/preset-avatars";
+import { useUid } from "@/hooks/uid";
+import { createProfile } from "@/service/profile-service";
+import { UNO_ICON_COLOR } from "@/theme";
+import { notifyError } from "../notifications";
 
 type FormValues = {
   displayName: string;
@@ -26,7 +27,7 @@ const CreateProfilePage = () => {
   const uid = useUid();
 
   const handleSubmit = (form: FormValues) => {
-    createProfile(uid, UserDataSchema.parse(form)).catch(console.error);
+    createProfile(uid, UserDataSchema.parse(form)).catch(notifyError);
   };
 
   const { onSubmit, getInputProps, key } = useForm<FormValues>({

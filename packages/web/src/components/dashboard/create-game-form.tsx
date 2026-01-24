@@ -16,6 +16,7 @@ import { FaGlobe, FaLock, FaPlus, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { createGame } from "@/service/game-service";
 import { UNO_ICON_COLOR } from "@/theme";
+import { notifyError } from "../notifications";
 
 type FormValues = {
   isPublic: boolean;
@@ -41,7 +42,7 @@ const CreateGameForm = () => {
         .map(([rule]) => HouseRuleSchema.parse(rule)),
     })
       .then((id) => navigate(`/game/${id}`))
-      .catch(console.error);
+      .catch(notifyError);
   };
 
   const { onSubmit, getValues, setFieldValue, key } = useForm<FormValues>({

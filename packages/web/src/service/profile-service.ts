@@ -1,12 +1,12 @@
-import { db } from "@/firebase";
-import { UserSchema, type User, type UserData } from "@uno/shared";
+import { type User, type UserData, UserSchema } from "@uno/shared";
 import {
   doc,
-  onSnapshot,
-  QueryDocumentSnapshot,
-  setDoc,
   type FirestoreDataConverter,
+  onSnapshot,
+  type QueryDocumentSnapshot,
+  setDoc,
 } from "firebase/firestore";
+import { db } from "@/firebase";
 
 const profileConverter: FirestoreDataConverter<User, UserData> = {
   toFirestore: (user: User): UserData => user,
@@ -33,13 +33,19 @@ export const updateProfile = async (
 export const onProfileChange = (
   uid: string,
   callback: (data: User | null) => void,
+  errCallback: (error: Error) => void,
 ): (() => void) => {
   const userDoc = userRef(uid);
-  return onSnapshot(userDoc, (snapshot) => {
-    if (snapshot.exists()) {
-      callback(snapshot.data());
-    } else {
-      callback(null);
-    }
-  });
+  return onSnapshot(
+    userDoc,
+    (snapshot) => {
+      console.log(`Subscribing to profile for ${uid}`);
+      if (snapshot.exists()) {
+        callback(snapshot.data());
+      } else {
+        callback(null);
+      }
+    },
+    errCallback,
+  );
 };

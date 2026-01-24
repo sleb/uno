@@ -1,8 +1,9 @@
-import { auth } from "@/firebase";
 import { Button } from "@mantine/core";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { useLocation, useNavigate } from "react-router-dom";
+import { auth } from "@/firebase";
+import { notifyError } from "../notifications";
 
 const LoginForm = () => {
   const { state } = useLocation();
@@ -13,7 +14,7 @@ const LoginForm = () => {
       await signInWithPopup(auth, new GoogleAuthProvider());
       navigate(state?.from || "/");
     } catch (err) {
-      console.error("Error signing in with Google:", err);
+      notifyError(err);
     }
   };
 
