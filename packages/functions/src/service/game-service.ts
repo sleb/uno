@@ -95,15 +95,21 @@ export const createGame = async (
 
 export const addPlayerToGame = async (gameId: string, userId: string) => {
   db.runTransaction(async (t) => {
+    const game = await getGame(gameId, t);
     const {
       players,
       config: { maxPlayers },
-    } = await getGame(gameId, t);
+      state: { status },
+    } = game;
     const { avatar, displayName } = await getUser(userId, t);
 
     if (players.includes(userId)) {
       console.log(`User ${userId} is already a player in game ${gameId}`);
       return;
+    }
+
+    if (status !== "waiting") {
+      throw new Error(`Game ${gameId} has already started or completed`);
     }
 
     if (players.length >= maxPlayers) {

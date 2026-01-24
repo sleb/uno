@@ -8,19 +8,12 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
   Title,
 } from "@mantine/core";
 import { useState } from "react";
-import {
-  FaGamepad,
-  FaPlus,
-  FaSearch,
-  FaTimes,
-  FaTrophy,
-  FaUsers,
-} from "react-icons/fa";
+import { FaGamepad, FaPlus, FaTimes, FaTrophy, FaUsers } from "react-icons/fa";
 import CreateGameForm from "@/components/dashboard/create-game-form";
+import GameSearch from "@/components/dashboard/game-search";
 import YourGamesTable from "@/components/dashboard/your-games-table";
 import { useUser } from "@/hooks/user";
 import { useUserGames } from "@/hooks/user-games";
@@ -30,6 +23,7 @@ const DashboardPage = () => {
   const { displayName, avatar } = useUser();
   const { games } = useUserGames();
   const [showCreateGame, setShowCreateGame] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const activeGamesCount = games.filter(
     (game) =>
@@ -121,18 +115,12 @@ const DashboardPage = () => {
         {/* Search/Filter Section */}
         {!showCreateGame && (
           <>
-            <Stack gap="md">
-              <TextInput
-                placeholder="Search for games or enter game code..."
-                leftSection={<FaSearch color={UNO_ICON_COLOR} />}
-                size="md"
-              />
-            </Stack>
+            <GameSearch onSearchChange={setSearchQuery} />
 
             {/* Games List */}
             <Stack gap="md">
               <Title order={2}>Your Games</Title>
-              <YourGamesTable />
+              <YourGamesTable searchQuery={searchQuery} />
             </Stack>
           </>
         )}

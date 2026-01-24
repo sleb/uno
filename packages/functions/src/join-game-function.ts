@@ -20,6 +20,22 @@ export const joinGame = onCall<JoinGameRequest, Promise<void>>(
       await addPlayerToGame(gameId, request.auth.uid);
     } catch (e) {
       error({ message: "Error joining game", error: e });
+
+      if (e instanceof Error) {
+        if (e.message.includes("not found")) {
+          throw new HttpsError("not-found", "Game not found.");
+        }
+        if (e.message.includes("is full")) {
+          throw new HttpsError("failed-precondition", "Game is full.");
+        }
+        if (e.message.includes("already started")) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Game has already started.",
+          );
+        }
+      }
+
       throw new HttpsError(
         "internal",
         "An error occurred while joining the game.",

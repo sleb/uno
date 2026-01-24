@@ -12,14 +12,29 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { FaEye, FaGamepad, FaUsers } from "react-icons/fa";
+import { FaEye, FaGamepad, FaSearch, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useUserGames } from "@/hooks/user-games";
 import { UNO_ICON_COLOR } from "@/theme";
 
-const YourGamesTable = () => {
+interface YourGamesTableProps {
+  searchQuery?: string;
+}
+
+const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
   const { games, loading } = useUserGames();
   const navigate = useNavigate();
+
+  // Filter games based on search query
+  const filteredGames = games.filter((game) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      game.id.toLowerCase().includes(query) ||
+      game.state.status.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -31,7 +46,7 @@ const YourGamesTable = () => {
     );
   }
 
-  if (games.length === 0) {
+  if (filteredGames.length === 0 && !searchQuery) {
     return (
       <Card>
         <Center py="xl">
@@ -90,12 +105,30 @@ const YourGamesTable = () => {
     return date.toLocaleDateString();
   };
 
+  if (filteredGames.length === 0 && searchQuery) {
+    return (
+      <Card>
+        <Center py="xl">
+          <Stack gap="md" align="center">
+            <FaSearch size={60} color={UNO_ICON_COLOR} opacity={0.3} />
+            <Text c="dimmed" ta="center">
+              No games match "{searchQuery}"
+            </Text>
+            <Text size="sm" c="dimmed" ta="center">
+              Try a different search term or game code
+            </Text>
+          </Stack>
+        </Center>
+      </Card>
+    );
+  }
+
   return (
     <>
-      {/* Desktop Table View */}
+      {/* Mobile Card View */}
       <Box hiddenFrom="sm">
         <Stack gap="md">
-          {games.map((game) => (
+          {filteredGames.map((game) => (
             <Card key={game.id} withBorder>
               <Stack gap="sm">
                 <Group justify="space-between">
@@ -129,7 +162,7 @@ const YourGamesTable = () => {
         </Stack>
       </Box>
 
-      {/* Mobile Card View */}
+      {/* Desktop Table View */}
       <Card visibleFrom="sm">
         <Stack gap="md">
           <Table striped highlightOnHover>
@@ -144,7 +177,7 @@ const YourGamesTable = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {games.map((game) => (
+              {filteredGames.map((game) => (
                 <Table.Tr key={game.id}>
                   <Table.Td>
                     <Text size="sm" fw={500} ff="monospace">
