@@ -14,6 +14,8 @@ import {
   type FirestoreDataConverter,
   onSnapshot,
   type QueryDocumentSnapshot,
+  query,
+  where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "@/firebase";
@@ -73,5 +75,20 @@ export const onGamePlayersUpdate = (
   return onSnapshot(gamePlayersRef(gameId), (snapshot) => {
     const players = snapshot.docs.map((doc) => doc.data());
     onUpdate(players);
+  });
+};
+
+export const onUserGamesUpdate = (
+  userId: string,
+  onUpdate: (games: Game[]) => void,
+): (() => void) => {
+  const userGamesQuery = query(
+    gamesRef(),
+    where("players", "array-contains", userId),
+  );
+
+  return onSnapshot(userGamesQuery, (snapshot) => {
+    const games = snapshot.docs.map((doc) => doc.data());
+    onUpdate(games);
   });
 };

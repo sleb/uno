@@ -21,12 +21,20 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import CreateGameForm from "@/components/dashboard/create-game-form";
+import YourGamesTable from "@/components/dashboard/your-games-table";
 import { useUser } from "@/hooks/user";
+import { useUserGames } from "@/hooks/user-games";
 import { UNO_ICON_COLOR } from "@/theme";
 
 const DashboardPage = () => {
   const { displayName, avatar } = useUser();
+  const { games } = useUserGames();
   const [showCreateGame, setShowCreateGame] = useState(false);
+
+  const activeGamesCount = games.filter(
+    (game) =>
+      game.state.status === "waiting" || game.state.status === "in-progress",
+  ).length;
 
   return (
     <Container size="lg" py="xl">
@@ -70,7 +78,7 @@ const DashboardPage = () => {
                   Active Games
                 </Title>
                 <Badge size="xl" variant="filled" color="unoBlue">
-                  0
+                  {activeGamesCount}
                 </Badge>
                 <Text size="sm" c="dimmed" ta="center">
                   Games in progress
@@ -124,21 +132,7 @@ const DashboardPage = () => {
             {/* Games List */}
             <Stack gap="md">
               <Title order={2}>Your Games</Title>
-
-              {/* Empty State */}
-              <Card>
-                <Center py="xl">
-                  <Stack gap="md" align="center">
-                    <FaGamepad size={60} color={UNO_ICON_COLOR} opacity={0.3} />
-                    <Text c="dimmed" ta="center">
-                      No active games yet
-                    </Text>
-                    <Text size="sm" c="dimmed" ta="center">
-                      Create a new game to get started!
-                    </Text>
-                  </Stack>
-                </Center>
-              </Card>
+              <YourGamesTable />
             </Stack>
           </>
         )}
