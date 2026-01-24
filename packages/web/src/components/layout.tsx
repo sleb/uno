@@ -18,10 +18,10 @@ import { useDisclosure } from "@mantine/hooks";
 import { signOut } from "firebase/auth";
 import { FaChevronDown, FaHome, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { UnoLogo } from "@/components/common";
 import { auth } from "@/firebase";
 import { useUser } from "@/hooks/user";
 import { UNO_ICON_COLOR } from "@/theme";
-import { UnoLogo } from "./common";
 
 const Layout = () => {
   const { displayName, avatar } = useUser();
