@@ -1,10 +1,10 @@
 import type { User } from "@uno/shared";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import CreateProfilePage from "@/components/create-profile/create-profile-page";
-import { ProfileContext } from "@/context/profile";
-import { useUid } from "@/hooks/uid";
-import { onProfileChange } from "@/service/profile-service";
+import { ProfileContext } from "../context/profile";
+import { useUid } from "../hooks/uid";
+import { onProfileChange } from "../service/profile-service";
+import CreateProfilePage from "./create-profile/create-profile-page";
 import { notifyError } from "./notifications";
 
 const ProfileRequired = () => {

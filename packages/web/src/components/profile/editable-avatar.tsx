@@ -1,7 +1,7 @@
-import { PRESET_AVATARS } from "@/constants/preset-avatars";
-import { updateProfile } from "@/service/profile-service";
 import { Avatar, Button, Group, Select, Stack, Text } from "@mantine/core";
 import { useState } from "react";
+import { PRESET_AVATARS } from "../../constants/preset-avatars";
+import { updateProfile } from "../../service/profile-service";
 
 interface EditableAvatarProps {
   avatar: string;

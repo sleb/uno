@@ -1,26 +1,26 @@
 import {
-  ActionIcon,
-  Badge,
-  Box,
-  Button,
-  Card,
-  Center,
-  CopyButton,
-  Divider,
-  Grid,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
+    ActionIcon,
+    Badge,
+    Box,
+    Button,
+    Card,
+    Center,
+    CopyButton,
+    Divider,
+    Grid,
+    Group,
+    Paper,
+    Stack,
+    Text,
+    Title,
+    Tooltip,
 } from "@mantine/core";
 import type { Game } from "@uno/shared";
 import { useEffect, useState } from "react";
 import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
 import { useParams } from "react-router-dom";
-import { useUser } from "@/hooks/user";
-import { joinGame, onGameUpdate } from "@/service/game-service";
+import { useUser } from "../../hooks/user";
+import { joinGame, onGameUpdate } from "../../service/game-service";
 import PlayersSection from "./players-section";
 
 const GamePage = () => {

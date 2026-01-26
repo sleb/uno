@@ -1,7 +1,7 @@
 import { ActionIcon, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { FaSearch, FaTimes } from "react-icons/fa";
-import { UNO_ICON_COLOR } from "@/theme";
+import { UNO_ICON_COLOR } from "../../theme";
 
 interface GameSearchProps {
   onSearchChange: (query: string) => void;

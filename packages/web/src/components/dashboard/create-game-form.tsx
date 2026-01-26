@@ -1,5 +1,3 @@
-import { createGame } from "@/service/game-service";
-import { UNO_ICON_COLOR } from "@/theme";
 import {
   Button,
   Card,
@@ -13,9 +11,11 @@ import {
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { HouseRuleSchema } from "node_modules/@uno/shared/src/types";
+import { HouseRuleSchema } from "@uno/shared";
 import { FaGlobe, FaLock, FaPlus, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { createGame } from "../../service/game-service";
+import { UNO_ICON_COLOR } from "../../theme";
 import { notifyError } from "../notifications";
 
 type FormValues = {

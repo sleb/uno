@@ -1,7 +1,7 @@
 import type { Game } from "@uno/shared";
 import { useEffect, useState } from "react";
-import { useUid } from "@/hooks/uid";
-import { onUserGamesUpdate } from "@/service/game-service";
+import { onUserGamesUpdate } from "../service/game-service";
+import { useUid } from "./uid";
 
 export const useUserGames = () => {
   const uid = useUid();

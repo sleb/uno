@@ -1,23 +1,23 @@
 import {
-  Avatar,
-  Badge,
-  Button,
-  Card,
-  Center,
-  Container,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
+    Avatar,
+    Badge,
+    Button,
+    Card,
+    Center,
+    Container,
+    SimpleGrid,
+    Stack,
+    Text,
+    Title,
 } from "@mantine/core";
 import { useState } from "react";
 import { FaGamepad, FaPlus, FaTimes, FaTrophy, FaUsers } from "react-icons/fa";
-import CreateGameForm from "@/components/dashboard/create-game-form";
-import GameSearch from "@/components/dashboard/game-search";
-import YourGamesTable from "@/components/dashboard/your-games-table";
-import { useUser } from "@/hooks/user";
-import { useUserGames } from "@/hooks/user-games";
-import { UNO_ICON_COLOR } from "@/theme";
+import { useUser } from "../../hooks/user";
+import { useUserGames } from "../../hooks/user-games";
+import { UNO_ICON_COLOR } from "../../theme";
+import CreateGameForm from "./create-game-form";
+import GameSearch from "./game-search";
+import YourGamesTable from "./your-games-table";
 
 const DashboardPage = () => {
   const { displayName, avatar } = useUser();

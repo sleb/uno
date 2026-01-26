@@ -1,5 +1,5 @@
-import { useUser } from "@/hooks/user";
 import { Card, Center, Stack, Text, Title } from "@mantine/core";
+import { useUser } from "../../hooks/user";
 import EditableAvatar from "./editable-avatar";
 import EditableDisplayName from "./editable-display-name";
 

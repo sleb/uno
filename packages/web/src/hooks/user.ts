@@ -1,6 +1,6 @@
-import { ProfileContext } from "@/context/profile";
 import type { User } from "@uno/shared";
 import { useContext } from "react";
+import { ProfileContext } from "../context/profile";
 
 export const useUser = (): User => {
   const user = useContext(ProfileContext);

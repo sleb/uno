@@ -1,4 +1,3 @@
-import { db, functions } from "@/firebase";
 import {
     type CreateGameRequest,
     CreateGameResponseSchema,
@@ -22,6 +21,7 @@ import {
     where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../firebase";
 
 const gameConverter: FirestoreDataConverter<Game, GameData> = {
   toFirestore: (game: Game): GameData => game,

@@ -2,7 +2,7 @@ import { Button } from "@mantine/core";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { useLocation, useNavigate } from "react-router-dom";
-import { auth } from "@/firebase";
+import { auth } from "../../firebase";
 import { notifyError } from "../notifications";
 
 const LoginForm = () => {

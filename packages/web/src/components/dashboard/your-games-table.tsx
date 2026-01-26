@@ -1,21 +1,21 @@
 import {
-  ActionIcon,
-  Badge,
-  Box,
-  Button,
-  Card,
-  Center,
-  Group,
-  Loader,
-  Stack,
-  Table,
-  Text,
-  Tooltip,
+    ActionIcon,
+    Badge,
+    Box,
+    Button,
+    Card,
+    Center,
+    Group,
+    Loader,
+    Stack,
+    Table,
+    Text,
+    Tooltip,
 } from "@mantine/core";
 import { FaEye, FaGamepad, FaSearch, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { useUserGames } from "@/hooks/user-games";
-import { UNO_ICON_COLOR } from "@/theme";
+import { useUserGames } from "../../hooks/user-games";
+import { UNO_ICON_COLOR } from "../../theme";
 
 interface YourGamesTableProps {
   searchQuery?: string;

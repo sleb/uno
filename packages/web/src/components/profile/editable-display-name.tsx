@@ -1,6 +1,6 @@
-import { updateProfile } from "@/service/profile-service";
 import { Button, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { updateProfile } from "../../service/profile-service";
 
 interface EditableDisplayNameProps {
   displayName: string;

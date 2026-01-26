@@ -1,4 +1,3 @@
-import { auth, authStateReady } from "@/firebase";
 import {
   Button,
   Card,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { FaGamepad, FaGlassCheers, FaPlay, FaUsers } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { auth, authStateReady } from "../../firebase";
 import { UNO_ICON_COLOR } from "../../theme";
 import { UnoLogo } from "../common";
 import LoginForm from "../login/login-form";
