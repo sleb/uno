@@ -1,24 +1,27 @@
+import { db, functions } from "@/firebase";
 import {
-  type CreateGameRequest,
-  CreateGameResponseSchema,
-  type Game,
-  type GameData,
-  type GamePlayer,
-  type GamePlayerData,
-  GamePlayerSchema,
-  GameSchema,
+    type CreateGameRequest,
+    CreateGameResponseSchema,
+    type Game,
+    type GameData,
+    type GamePlayer,
+    type GamePlayerData,
+    GamePlayerSchema,
+    GameSchema,
+    type PlayerHand,
+    type PlayerHandData,
+    PlayerHandSchema,
 } from "@uno/shared";
 import {
-  collection,
-  doc,
-  type FirestoreDataConverter,
-  onSnapshot,
-  type QueryDocumentSnapshot,
-  query,
-  where,
+    collection,
+    doc,
+    type FirestoreDataConverter,
+    onSnapshot,
+    query,
+    type QueryDocumentSnapshot,
+    where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { db, functions } from "@/firebase";
 
 const gameConverter: FirestoreDataConverter<Game, GameData> = {
   toFirestore: (game: Game): GameData => game,
@@ -35,11 +38,23 @@ const gamePlayerConverter: FirestoreDataConverter<GamePlayer, GamePlayerData> =
       GamePlayerSchema.parse({ id: snapshot.id, ...snapshot.data() }),
   };
 
+const playerHandConverter: FirestoreDataConverter<PlayerHand, PlayerHandData> =
+  {
+    toFirestore: (hand: PlayerHand): PlayerHandData => hand,
+    fromFirestore: (
+      snapshot: QueryDocumentSnapshot<PlayerHandData>,
+    ): PlayerHand =>
+      PlayerHandSchema.parse({ id: snapshot.id, ...snapshot.data() }),
+  };
+
 const gamesRef = () => collection(db, "games").withConverter(gameConverter);
 const gameRef = (gameId: string) => doc(gamesRef(), gameId);
 
 const gamePlayersRef = (gameId: string) =>
   collection(gameRef(gameId), "players").withConverter(gamePlayerConverter);
+
+const playerHandsRef = (gameId: string) =>
+  collection(gameRef(gameId), "playerHands").withConverter(playerHandConverter);
 
 const createGameFunction = httpsCallable(functions, "createGame");
 export const createGame = async (
@@ -90,5 +105,19 @@ export const onUserGamesUpdate = (
   return onSnapshot(userGamesQuery, (snapshot) => {
     const games = snapshot.docs.map((doc) => doc.data());
     onUpdate(games);
+  });
+};
+
+export const onPlayerHandUpdate = (
+  gameId: string,
+  playerId: string,
+  onUpdate: (hand: PlayerHand) => void,
+): (() => void) => {
+  return onSnapshot(doc(playerHandsRef(gameId), playerId), (snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error(`Player hand for ${playerId} not found`);
+    }
+    const hand = snapshot.data();
+    onUpdate(hand);
   });
 };

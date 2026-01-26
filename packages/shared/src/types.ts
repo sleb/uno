@@ -74,6 +74,7 @@ export const GameSchema = GameDataSchema.extend({
   id: z.string(),
 });
 
+// Game Players Subcollection - Public profile data (readable by all players in game)
 export const GamePlayerDataSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
@@ -83,7 +84,6 @@ export const GamePlayerDataSchema = z.object({
   hasCalledUno: z.boolean(),
   status: z.enum(["waiting", "active", "winner", "forfeited"]),
   lastActionAt: z.iso.datetime(),
-  hand: z.array(CardSchema),
   gameStats: z.object({
     cardsPlayed: z.number(),
     cardsDrawn: z.number(),
@@ -93,6 +93,15 @@ export const GamePlayerDataSchema = z.object({
 });
 
 export const GamePlayerSchema = GamePlayerDataSchema.extend({
+  id: z.string(),
+});
+
+// Player Hands Subcollection - Private hand data (readable only by owner)
+export const PlayerHandDataSchema = z.object({
+  hand: z.array(CardSchema),
+});
+
+export const PlayerHandSchema = PlayerHandDataSchema.extend({
   id: z.string(),
 });
 
@@ -115,6 +124,8 @@ export type PlayerData = z.infer<typeof PlayerDataSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
 export type GamePlayerData = z.infer<typeof GamePlayerDataSchema>;
 export type GamePlayer = z.infer<typeof GamePlayerSchema>;
+export type PlayerHandData = z.infer<typeof PlayerHandDataSchema>;
+export type PlayerHand = z.infer<typeof PlayerHandSchema>;
 export type CreateGameRequest = z.infer<typeof CreateGameRequestSchema>;
 export type CreateGameResponse = z.infer<typeof CreateGameResponseSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;

@@ -21,13 +21,20 @@ service cloud.firestore {
           || request.auth.uid in resource.data.players);
     }
 
-    // Games subcollections (e.g., players):
-    // - Any authenticated user can read subcollection docs when parent game is "waiting".
+    // Game Players subcollection:
+    // - Any authenticated user can read when parent game is "waiting".
     // - For other states, only players in the parent game's players array can read.
-    match /games/{gameId}/{document=**} {
+    match /games/{gameId}/players/{playerId} {
       allow read: if request.auth != null
         && (get(/databases/$(database)/documents/games/$(gameId)).data.state.status == "waiting"
           || request.auth.uid in get(/databases/$(database)/documents/games/$(gameId)).data.players);
+    }
+
+    // Player private hand data:
+    // - Only the owner (playerId) can read their own hand.
+    // - Cloud Functions write on behalf of players with proper auth.
+    match /games/{gameId}/playerHands/{playerId} {
+      allow read: if request.auth != null && request.auth.uid == playerId;
     }
 
     // Deny everything else by default.

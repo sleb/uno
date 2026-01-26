@@ -1,16 +1,17 @@
-import type {
-  DocumentReference,
-  DocumentSnapshot,
-  Transaction,
-} from "firebase-admin/firestore";
 import {
   type CreateGameRequest,
   type GameData,
   GameDataSchema,
   type GamePlayerData,
+  type PlayerHandData,
   type UserData,
-  UserDataSchema,
+  UserDataSchema
 } from "@uno/shared";
+import type {
+  DocumentReference,
+  DocumentSnapshot,
+  Transaction,
+} from "firebase-admin/firestore";
 import { db } from "../firebase";
 
 const DECK_SIZE = 108;
@@ -26,11 +27,15 @@ const gamesRef = () => db.collection("games");
 const usersRef = () => db.collection("users");
 const playersRef = (gameId: string) =>
   gamesRef().doc(gameId).collection("players");
+const playerHandsRef = (gameId: string) =>
+  gamesRef().doc(gameId).collection("playerHands");
 
 const gameRef = (gameId: string) => gamesRef().doc(gameId);
 const userRef = (userId: string) => usersRef().doc(userId);
 const playerRef = (gameId: string, userId: string) =>
   playersRef(gameId).doc(userId);
+const playerHandRef = (gameId: string, userId: string) =>
+  playerHandsRef(gameId).doc(userId);
 
 const newGameRef = () => gamesRef().doc();
 
@@ -94,7 +99,7 @@ export const createGame = async (
 };
 
 export const addPlayerToGame = async (gameId: string, userId: string) => {
-  db.runTransaction(async (t) => {
+  await db.runTransaction(async (t) => {
     const game = await getGame(gameId, t);
     const {
       players,
@@ -120,6 +125,7 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
     t.update(gameRef(gameId), { players: updatedPlayers });
 
     const now = new Date().toISOString();
+    // Public player profile data
     const playerData: GamePlayerData = {
       userId,
       displayName,
@@ -129,7 +135,6 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
       hasCalledUno: false,
       status: "waiting",
       lastActionAt: now,
-      hand: [],
       gameStats: {
         cardsPlayed: 0,
         cardsDrawn: 0,
@@ -137,7 +142,12 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
         specialCardsPlayed: 0,
       },
     };
-
     t.set(playerRef(gameId, userId), playerData);
+
+    // Private hand data
+    const handData: PlayerHandData = {
+      hand: [],
+    };
+    t.set(playerHandRef(gameId, userId), handData);
   });
 };

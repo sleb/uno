@@ -125,6 +125,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 /users/{userId}
 /games/{gameId}
 /games/{gameId}/players/{playerId}
+/games/{gameId}/playerHands/{playerId}
 ```
 
 ---
@@ -137,39 +138,18 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ```javascript
 {
-  userId: string,              // Firebase Auth UID
   displayName: string,         // Player's display name
-  email: string,               // Email address
-  photoURL: string | null,     // Profile picture URL
-  createdAt: timestamp,        // Account creation date
-  lastActive: timestamp,       // Last activity timestamp
-
-  // Statistics
-  stats: {
-    gamesPlayed: number,       // Total games participated
-    gamesWon: number,          // Total wins
-    gamesLost: number,         // Total losses
-    gamesAbandoned: number,    // Games forfeited
-    winRate: number,           // Calculated win percentage
-  },
-
-  // Preferences
-  preferences: {
-    notifications: boolean,    // Enable/disable notifications
-    soundEffects: boolean,     // Enable/disable sounds
-    theme: string,             // UI theme preference
-  },
-
-  // Active games reference
-  activeGames: string[],       // Array of gameId where player is active
-  pendingInvites: string[],    // Array of gameId with pending invitations
+  avatar: string,              // Emoji or avatar identifier
 }
 ```
 
-**Indexes**:
+**MVP Implementation**: Current schema includes only essential fields. Future additions:
 
-- `lastActive` (descending) - for finding active players
-- `stats.gamesPlayed` (descending) - for leaderboards
+- `stats` (gamesPlayed, gamesWon, gamesLost, winRate)
+- `preferences` (notifications, soundEffects, theme)
+- `activeGames`, `pendingInvites` arrays
+
+**Indexes**: None required for MVP.
 
 ---
 
@@ -181,70 +161,46 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ```javascript
 {
-  gameId: string,              // Auto-generated ID
-  createdAt: timestamp,        // Game creation time
-  updatedAt: timestamp,        // Last move/activity time
-  startedAt: timestamp | null, // When game actually started
-  completedAt: timestamp | null, // When game ended
+  createdAt: string,           // ISO timestamp - game creation time
+  startedAt: string | null,    // ISO timestamp - when game started (null for waiting)
+  lastActivityAt: string,      // ISO timestamp - last activity time
 
   // Game Configuration
   config: {
-    maxPlayers: number,        // 2-4 players
-    isPublic: boolean,         // Public or private game
-    gameCode: string | null,   // 6-digit code for private games
-    houseRules: {
-      drawToMatch: boolean,    // Must draw until playable card
-      stacking: boolean,       // Stack +2 and +4 cards
-      sevenSwap: boolean,      // Playing 7 swaps hands
-      zeroRotation: boolean,   // Playing 0 rotates hands
-      jumpIn: boolean,         // Jump in with identical card
-    },
-  },
-
-  // Game State
-  state: {
-    status: string,            // 'waiting' | 'active' | 'completed' | 'abandoned'
-    currentTurn: string,       // userId of current player
-    turnOrder: string[],       // Array of userIds in turn order
-    direction: number,         // 1 for clockwise, -1 for counter-clockwise
-    deckSeed: string,          // Random seed for deck generation (updated on reshuffle)
-    drawPileCount: number,     // Cards remaining in draw pile (computed)
-    discardPile: [{            // Full discard pile history (last played at end)
-      color: string,           // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
-      value: string,           // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
-    }],
-    currentColor: string,      // Active color (important for wild cards)
-    mustDraw: number,          // Pending draw count (for stacking +2/+4)
-    turnStartedAt: timestamp,  // When current turn began
-    consecutivePasses: number, // Track if game is stuck
+    isPrivate: boolean,        // Private or public game
+    maxPlayers: number,        // 2-10 players
+    houseRules: string[],      // Array of HouseRule enums: 'stacking' | 'jumpIn' | 'sevenSwap' | 'drawToMatch' | 'zeroRotation'
   },
 
   // Players in game
-  playerIds: string[],         // Array of userIds
-  playerCount: number,         // Current number of players
+  players: string[],           // Array of userIds
 
-  // Winner (null if game not completed)
-  winner: {
-    userId: string,
-    displayName: string,
-    completedAt: timestamp,
-  } | null,
-
-  // Activity log (last 50 actions)
-  recentActivity: [{
-    type: string,              // 'card_played' | 'card_drawn' | 'turn_passed' | 'uno_called' | 'player_joined' | 'game_started' | 'game_ended'
-    userId: string,
-    timestamp: timestamp,
-    details: object,           // Action-specific details
-  }],
+  // Game State
+  state: {
+    status: string,            // 'waiting' | 'in-progress' | 'completed'
+    currentTurnPlayerId: string | null, // userId of current player (null if waiting)
+    direction: string,         // 'clockwise' | 'counter-clockwise'
+    deckSeed: string,          // Random seed for deck generation (updated on reshuffle)
+    drawPileCount: number,     // Cards remaining in draw pile
+    discardPile: [{            // Discard pile (most recent card at end)
+      color: string,           // 'red' | 'yellow' | 'green' | 'blue' (wild cards have no color)
+      value: string,           // '0'-'9' | 'skip' | 'reverse' | 'draw-two' | 'wild' | 'wild-draw-four'
+    }],
+  },
 }
 ```
 
-**Indexes**:
+**Post-MVP fields** (planned for future phases):
 
-- `state.status`, `config.isPublic`, `updatedAt` - for finding open public games
-- `playerIds` (array-contains), `state.status` - for finding user's active games
-- `updatedAt` (descending) - for sorting by activity
+- `completedAt` - timestamp when game ended
+- `state.currentColor` - active color for wild cards
+- `state.mustDraw` - pending draw count for stacking
+- `state.turnStartedAt` - when current turn began
+- `state.consecutivePasses` - track stuck games
+- `winner` - object with userId, displayName, completedAt
+- `recentActivity` - array of action logs
+
+**Indexes**: To be defined. Current queries use `players` (array-contains) to find user's active games.
 
 ---
 
@@ -252,31 +208,18 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 **Document ID**: userId
 
-**Schema**:
+**Schema** (public profile data—readable by all game participants):
 
 ```javascript
 {
   userId: string,              // Reference to user
   displayName: string,         // Cached display name
-  photoURL: string | null,     // Cached photo URL
-
-  // Player state in this game
-  joinedAt: timestamp,         // When player joined
-  position: number,            // Seat position (0-3)
+  avatar: string,              // Cached avatar
+  joinedAt: string,            // ISO timestamp - when player joined
   cardCount: number,           // Number of cards in hand
   hasCalledUno: boolean,       // Whether UNO was called with 1 card
-
-  // Game status for this player
   status: string,              // 'waiting' | 'active' | 'winner' | 'forfeited'
-  lastActionAt: timestamp,     // Last time player took action
-
-  // Cards in hand (visible only to owner via security rules)
-  hand: [{
-    color: string,             // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
-    value: string,             // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
-  }],
-
-  // Player statistics for this game
+  lastActionAt: string,        // ISO timestamp - last time player took action
   gameStats: {
     cardsPlayed: number,       // Total cards played
     cardsDrawn: number,        // Total cards drawn
@@ -286,13 +229,35 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 }
 ```
 
-**Security Note**: The `hand` array should only be readable by the player who owns it.
+**Security**: Readable by all players in a non-waiting game; when game is waiting, any authenticated user can read.
+
+**Post-MVP fields**:
+
+- `position` - seat position (0-9)
 
 ---
 
-### 4. Card Management
+### 4. Player Hands Subcollection (`/games/{gameId}/playerHands/{playerId}`)
 
-**No separate cards subcollection** - cards are stored directly as data objects within game and player documents.
+**Document ID**: userId
+
+**Schema** (private hand data—readable only by owner):
+
+```javascript
+{
+  // Cards in hand (visible only to the owner via Firestore security rules)
+  hand: [{
+    color: string,             // 'red' | 'yellow' | 'green' | 'blue' (wild cards have no color)
+    value: string,             // '0'-'9' | 'skip' | 'reverse' | 'draw-two' | 'wild' | 'wild-draw-four'
+  }],
+}
+```
+
+**Security**: Only readable by `playerId` (the owner). Cloud Functions update this collection with proper authentication.
+
+---
+
+### 5. Card Management
 
 **Card object structure**:
 
@@ -320,6 +285,7 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 4. Continue drawing from the newly available cards.
 
 This approach:
+
 - Avoids persisting and shuffling a deck upfront
 - Guarantees card uniqueness across the game
 - Provides deterministic randomization via seed (useful for debugging/replay)
@@ -329,7 +295,7 @@ This approach:
 
 **Discard pile**: Stored as an ordered array in `state.discardPile` with the most recently played card at the end of the array. The top card is `discardPile[discardPile.length - 1]`.
 
-**Player hands**: Stored as arrays of card objects in each player document's `hand` field, visible only to that player via security rules.
+**Player hands**: Stored as card arrays in each player's private `/games/{gameId}/playerHands/{playerId}` document, visible only to that player via security rules.
 
 ---
 
@@ -339,8 +305,8 @@ This approach:
 
 1. User clicks "Create Game" on dashboard
 2. Cloud Function creates new document in `/games`
-3. Cloud Function creates player document in `/games/{gameId}/players/{userId}`
-4. Cloud Function deals initial cards to each player's `hand` array
+3. Cloud Function creates player document in `/games/{gameId}/players/{userId}` (public profile)
+4. Cloud Function creates playerHands document in `/games/{gameId}/playerHands/{userId}` with initial cards
 5. Cloud Function sets first discard pile card
 6. Cloud Function updates `/users/{userId}/activeGames`
 
@@ -352,7 +318,8 @@ This approach:
 4. Cloud Function validates move (authoritative check)
 5. Cloud Function updates:
    - `/games/{gameId}` (state.discardPile, currentTurn)
-   - `/games/{gameId}/players/{userId}` (hand, cardCount, stats)
+   - `/games/{gameId}/players/{userId}` (cardCount, stats)
+   - `/games/{gameId}/playerHands/{userId}` (hand)
    - `/users/{nextPlayerId}` (trigger notification)
 6. Other players receive real-time updates via Firestore listeners
 
