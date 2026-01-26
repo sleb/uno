@@ -1,3 +1,8 @@
+import type {
+  DocumentReference,
+  DocumentSnapshot,
+  Transaction,
+} from "firebase-admin/firestore";
 import {
   type CreateGameRequest,
   type GameData,
@@ -6,11 +11,6 @@ import {
   type UserData,
   UserDataSchema,
 } from "@uno/shared";
-import type {
-  DocumentReference,
-  DocumentSnapshot,
-  Transaction,
-} from "firebase-admin/firestore";
 import { db } from "../firebase";
 
 const DECK_SIZE = 108;

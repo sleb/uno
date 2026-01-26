@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/index.ts",
-    "build": "bun build ./src/index.html --outdir=dist --sourcemap --target=browser  --env='UNO_PUBLIC_*'",
+    "build": "NODE_ENV=production bun run build.ts",
     "start": "NODE_ENV=production bun src/index.ts"
   },
   "dependencies": {

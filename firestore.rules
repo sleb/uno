@@ -12,6 +12,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Games:
+    // - Any authenticated user can read games in "waiting" state.
+    // - For other states, only players in the game's players array can read.
+    match /games/{gameId} {
+      allow read: if request.auth != null
+        && (resource.data.state.status == "waiting"
+          || request.auth.uid in resource.data.players);
+    }
+
+    // Games subcollections (e.g., players):
+    // - Any authenticated user can read subcollection docs when parent game is "waiting".
+    // - For other states, only players in the parent game's players array can read.
+    match /games/{gameId}/{document=**} {
+      allow read: if request.auth != null
+        && (get(/databases/$(database)/documents/games/$(gameId)).data.state.status == "waiting"
+          || request.auth.uid in get(/databases/$(database)/documents/games/$(gameId)).data.players);
+    }
+
     // Deny everything else by default.
     match /{document=**} {
       allow read, write: if false;

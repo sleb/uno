@@ -4,9 +4,6 @@
   "workspaces": {
     "": {
       "name": "uno",
-      "dependencies": {
-        "@mantine/notifications": "^8.3.13",
-      },
       "devDependencies": {
         "@biomejs/biome": "^2.3.11",
       },
@@ -14,12 +11,12 @@
     "packages/functions": {
       "name": "@uno/functions",
       "dependencies": {
-        "@uno/shared": "*",
         "firebase-admin": "^13.6.0",
         "firebase-functions": "^7.0.3",
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "@uno/shared": "*",
       },
       "peerDependencies": {
         "typescript": "^5",

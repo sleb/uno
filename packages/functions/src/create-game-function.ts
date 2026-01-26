@@ -1,12 +1,11 @@
 import type { CreateGameRequest, CreateGameResponse } from "@uno/shared";
-import { HttpsError, onCall } from "firebase-functions/https";
+import { type CallableRequest, HttpsError } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import { createGame as _createGame } from "./service/game-service";
 
-export const createGame = onCall<
-  CreateGameRequest,
-  Promise<CreateGameResponse>
->(async (request) => {
+export const createGame = async (
+  request: CallableRequest<CreateGameRequest>,
+): Promise<CreateGameResponse> => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -24,4 +23,4 @@ export const createGame = onCall<
       "An error occurred while creating the game.",
     );
   }
-});
+};

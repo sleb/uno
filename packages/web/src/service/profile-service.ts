@@ -39,7 +39,6 @@ export const onProfileChange = (
   return onSnapshot(
     userDoc,
     (snapshot) => {
-      console.log(`Subscribing to profile for ${uid}`);
       if (snapshot.exists()) {
         callback(snapshot.data());
       } else {
