@@ -13,6 +13,7 @@ const app = initializeApp({
 });
 
 export const auth = getAuth(app);
+export const authStateReady = auth.authStateReady();
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
 

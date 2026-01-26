@@ -1,4 +1,4 @@
-import { auth } from "@/firebase";
+import { auth, authStateReady } from "@/firebase";
 import {
   Button,
   Card,
@@ -11,21 +11,26 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FaGamepad, FaGlassCheers, FaPlay, FaUsers } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { UNO_ICON_COLOR } from "../../theme";
 import { UnoLogo } from "../common";
 import LoginForm from "../login/login-form";
 
 const HomePage = () => {
+  const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    auth.authStateReady().then(() => {
+    authStateReady.then(() => {
       const user = auth.currentUser;
       setUid(user ? user.uid : null);
+      setLoading(false);
     });
   }, []);
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
 
   return (
     <Container size="lg" py="xl">
