@@ -1,3 +1,5 @@
+import { createGame } from "@/service/game-service";
+import { UNO_ICON_COLOR } from "@/theme";
 import {
   Button,
   Card,
@@ -14,8 +16,6 @@ import { useForm } from "@mantine/form";
 import { HouseRuleSchema } from "node_modules/@uno/shared/src/types";
 import { FaGlobe, FaLock, FaPlus, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { createGame } from "@/service/game-service";
-import { UNO_ICON_COLOR } from "@/theme";
 import { notifyError } from "../notifications";
 
 type FormValues = {
@@ -33,19 +33,23 @@ type FormValues = {
 const CreateGameForm = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = ({ houseRules, isPublic, maxPlayers }: FormValues) => {
-    createGame({
-      isPrivate: !isPublic,
-      maxPlayers,
-      houseRules: Object.entries(houseRules)
-        .filter(([, enabled]) => enabled)
-        .map(([rule]) => HouseRuleSchema.parse(rule)),
-    })
-      .then((id) => navigate(`/game/${id}`))
-      .catch(notifyError);
+  const handleSubmit = async ({ houseRules, isPublic, maxPlayers }: FormValues) => {
+    try {
+      const gameId = await createGame({
+        isPrivate: !isPublic,
+        maxPlayers,
+        houseRules: Object.entries(houseRules)
+          .filter(([, enabled]) => enabled)
+          .map(([rule]) => HouseRuleSchema.parse(rule)),
+      });
+
+      navigate(`/game/${gameId}`);
+    } catch (err) {
+      notifyError(err);
+    }
   };
 
-  const { onSubmit, getValues, setFieldValue, key } = useForm<FormValues>({
+  const { onSubmit, submitting, getValues, setFieldValue, key } = useForm<FormValues>({
     initialValues: {
       isPublic: true,
       maxPlayers: 4,
@@ -180,6 +184,7 @@ const CreateGameForm = () => {
               leftSection={<FaPlus />}
               variant="gradient"
               gradient={{ from: "blue", to: "cyan", deg: 90 }}
+              loading={submitting}
             >
               Create Game
             </Button>
