@@ -252,11 +252,11 @@ export const startGame = async (gameId: string): Promise<void> => {
     // Generate cards for all players
     const dealtCards = await dealCards(deckSeed, drawPileCount, totalCardsToDeal);
 
-    // Assign cards to player hands
+    // Assign cards to player hands (create if missing)
     let cardIndex = 0;
     for (const playerId of players) {
       const playerHand = dealtCards.slice(cardIndex, cardIndex + CARDS_PER_PLAYER);
-      t.update(playerHandRef(gameId, playerId), { hand: playerHand });
+      t.set(playerHandRef(gameId, playerId), { hand: playerHand }, { merge: true });
       cardIndex += CARDS_PER_PLAYER;
     }
 
