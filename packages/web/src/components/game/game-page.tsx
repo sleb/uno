@@ -21,6 +21,7 @@ import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 import { useUser } from "../../hooks/user";
 import { joinGame, onGameUpdate, startGame } from "../../service/game-service";
+import GameBoard from "./game-board";
 import PlayersSection from "./players-section";
 
 const GamePage = () => {
@@ -66,7 +67,11 @@ const GamePage = () => {
     return <WaitingLobby game={game} currentUserId={user.id} />;
   }
 
-  // Placeholder for other game states
+  if (game.state.status === "in-progress") {
+    return <GameBoard game={game} currentUserId={user.id} />;
+  }
+
+  // Placeholder for completed state
   return (
     <Center h="60vh">
       <Text>Game state: {game.state.status} (not yet implemented)</Text>
