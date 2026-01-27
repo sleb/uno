@@ -1,5 +1,18 @@
 import z from "zod";
 
+export const GAME_STATUSES = {
+  WAITING: "waiting",
+  IN_PROGRESS: "in-progress",
+  COMPLETED: "completed",
+} as const;
+
+export const PLAYER_STATUSES = {
+  WAITING: "waiting",
+  ACTIVE: "active",
+  WINNER: "winner",
+  FORFEITED: "forfeited",
+} as const;
+
 export const UserDataSchema = z.object({
   displayName: z.string(),
   avatar: z.string(),
@@ -52,7 +65,7 @@ export const GameDataSchema = z.object({
   }),
   players: z.array(z.string()).default([]),
   state: z.object({
-    status: z.enum(["waiting", "in-progress", "completed"]),
+    status: z.enum(Object.values(GAME_STATUSES)),
     currentTurnPlayerId: z.string().nullable().default(null),
     direction: z.enum(["clockwise", "counter-clockwise"]),
     deckSeed: z.string(),
@@ -82,7 +95,7 @@ export const GamePlayerDataSchema = z.object({
   joinedAt: z.iso.datetime(),
   cardCount: z.number(),
   hasCalledUno: z.boolean(),
-  status: z.enum(["waiting", "active", "winner", "forfeited"]),
+  status: z.enum(Object.values(PLAYER_STATUSES)),
   lastActionAt: z.iso.datetime(),
   gameStats: z.object({
     cardsPlayed: z.number(),

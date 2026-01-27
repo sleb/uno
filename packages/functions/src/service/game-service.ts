@@ -2,6 +2,7 @@ import {
   type Card,
   CardSchema,
   type CreateGameRequest,
+  GAME_STATUSES,
   type GameData,
   GameDataSchema,
   type GamePlayerData,
@@ -263,7 +264,7 @@ export const startGame = async (gameId: string): Promise<void> => {
     const now = new Date().toISOString();
     t.update(gameRef(gameId), {
       startedAt: now,
-      "state.status": "playing",
+      "state.status": GAME_STATUSES.IN_PROGRESS,
       "state.currentTurnPlayerId": players[0],
       "state.drawPileCount": drawPileCount - totalCardsToDeal,
     });
