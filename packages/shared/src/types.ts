@@ -115,6 +115,10 @@ export const CreateGameResponseSchema = z.object({
   gameId: z.string(),
 });
 
+export const StartGameRequestSchema = z.object({
+  gameId: z.string(),
+});
+
 export type UserData = z.infer<typeof UserDataSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type GameData = z.infer<typeof GameDataSchema>;
@@ -128,4 +132,5 @@ export type PlayerHandData = z.infer<typeof PlayerHandDataSchema>;
 export type PlayerHand = z.infer<typeof PlayerHandSchema>;
 export type CreateGameRequest = z.infer<typeof CreateGameRequestSchema>;
 export type CreateGameResponse = z.infer<typeof CreateGameResponseSchema>;
+export type StartGameRequest = z.infer<typeof StartGameRequestSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;

@@ -1,19 +1,19 @@
 import {
-    ActionIcon,
-    Badge,
-    Box,
-    Button,
-    Card,
-    Center,
-    CopyButton,
-    Divider,
-    Grid,
-    Group,
-    Paper,
-    Stack,
-    Text,
-    Title,
-    Tooltip,
+  ActionIcon,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Center,
+  CopyButton,
+  Divider,
+  Grid,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
 } from "@mantine/core";
 import type { Game } from "@uno/shared";
 import { useEffect, useState } from "react";
@@ -252,8 +252,6 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
               </Button>
             </>
           ) : (
-            <>
-              <Box />
               <Button
                 size="lg"
                 variant="gradient"
@@ -264,7 +262,6 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
               >
                 {hasOpenSpots ? "Join Game" : "Game Full"}
               </Button>
-            </>
           )}
         </Group>
       </Stack>
