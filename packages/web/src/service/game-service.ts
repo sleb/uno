@@ -1,24 +1,24 @@
 import {
-    type CreateGameRequest,
-    CreateGameResponseSchema,
-    type Game,
-    type GameData,
-    type GamePlayer,
-    type GamePlayerData,
-    GamePlayerSchema,
-    GameSchema,
-    type PlayerHand,
-    type PlayerHandData,
-    PlayerHandSchema,
+  type CreateGameRequest,
+  CreateGameResponseSchema,
+  type Game,
+  type GameData,
+  type GamePlayer,
+  type GamePlayerData,
+  GamePlayerSchema,
+  GameSchema,
+  type PlayerHand,
+  type PlayerHandData,
+  PlayerHandSchema
 } from "@uno/shared";
 import {
-    collection,
-    doc,
-    type FirestoreDataConverter,
-    onSnapshot,
-    query,
-    type QueryDocumentSnapshot,
-    where,
+  collection,
+  doc,
+  type FirestoreDataConverter,
+  onSnapshot,
+  query,
+  type QueryDocumentSnapshot,
+  where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase";
@@ -68,6 +68,11 @@ export const createGame = async (
 const joinGameFunction = httpsCallable(functions, "joinGame");
 export const joinGame = async (gameId: string): Promise<void> => {
   await joinGameFunction({ gameId });
+};
+
+const startGameFunction = httpsCallable(functions, "startGame");
+export const startGame = async (gameId: string): Promise<void> => {
+  await startGameFunction({ gameId });
 };
 
 export const onGameUpdate = (

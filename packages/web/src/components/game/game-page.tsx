@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 import { useUser } from "../../hooks/user";
-import { joinGame, onGameUpdate } from "../../service/game-service";
+import { joinGame, onGameUpdate, startGame } from "../../service/game-service";
 import PlayersSection from "./players-section";
 
 const GamePage = () => {
@@ -83,6 +83,8 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
   const inviteUrl = `${window.location.origin}/game/${game.id}`;
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const isPlayerInGame = game.players.includes(currentUserId);
   const hasOpenSpots = game.players.length < game.config.maxPlayers;
@@ -97,6 +99,19 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
       console.error("Error joining game:", error);
       setJoinError("Failed to join game. Please try again.");
       setJoining(false);
+    }
+  };
+
+  const handleStartGame = async () => {
+    setStarting(true);
+    setStartError(null);
+    try {
+      await startGame(game.id);
+    } catch (error) {
+      console.error("Error starting game:", error);
+      setStartError("Failed to start game. Please try again.");
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -230,10 +245,19 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
         </Card>
 
         {/* Action Buttons */}
-        {joinError && (
-          <Text c="red" size="sm" ta="center">
-            {joinError}
-          </Text>
+        {(joinError || startError) && (
+          <Stack gap={4} align="center">
+            {joinError && (
+              <Text c="red" size="sm" ta="center">
+                {joinError}
+              </Text>
+            )}
+            {startError && (
+              <Text c="red" size="sm" ta="center">
+                {startError}
+              </Text>
+            )}
+          </Stack>
         )}
 
         <Group justify="space-between">
@@ -247,6 +271,8 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
                 variant="gradient"
                 gradient={{ from: "unoGreen.5", to: "green", deg: 90 }}
                 disabled={game.players.length < 2}
+                loading={starting}
+                onClick={handleStartGame}
               >
                 Start Game
               </Button>
