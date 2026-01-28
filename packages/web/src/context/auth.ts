@@ -1,3 +1,10 @@
 import { createContext } from "react";
 
-export const AuthContext = createContext<string | null>(null);
+export type AuthContextValue = {
+  uid: string | null;
+  loading: boolean;
+};
+
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined,
+);

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
+import AuthProvider from "./components/auth-provider";
 import { UnoNotificationsHost } from "./components/notifications";
 import { router } from "./router";
 import { theme } from "./theme";
@@ -21,8 +22,10 @@ const app = (
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme}>
-        <UnoNotificationsHost />
-        <RouterProvider router={router} />
+        <AuthProvider>
+          <UnoNotificationsHost />
+          <RouterProvider router={router} />
+        </AuthProvider>
       </MantineProvider>
     </QueryClientProvider>
   </StrictMode>

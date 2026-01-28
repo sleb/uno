@@ -8,25 +8,15 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
 import { FaGamepad, FaGlassCheers, FaPlay, FaUsers } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { auth, authStateReady } from "../../firebase";
+import { useAuth } from "../../hooks/auth";
 import { UNO_ICON_COLOR } from "../../theme";
 import { UnoLogo } from "../common";
 import LoginForm from "../login/login-form";
 
 const HomePage = () => {
-  const [loading, setLoading] = useState(true);
-  const [uid, setUid] = useState<string | null>(null);
-
-  useEffect(() => {
-    authStateReady.then(() => {
-      const user = auth.currentUser;
-      setUid(user ? user.uid : null);
-      setLoading(false);
-    });
-  }, []);
+  const { uid, loading } = useAuth();
 
   if (loading) {
     return <Text>Loading...</Text>;

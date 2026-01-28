@@ -1,10 +1,12 @@
-import { useContext } from "react";
-import { AuthContext } from "../context/auth";
+import { useAuth } from "./auth";
 
 export const useUid = (): string => {
-  const uid = useContext(AuthContext);
+  const { uid, loading } = useAuth();
+  if (loading) {
+    throw new Error("useUid called before auth state is ready");
+  }
   if (!uid) {
-    throw new Error("useUid must be used within an AuthProvider");
+    throw new Error("useUid must be used within an authenticated context");
   }
   return uid;
 };
