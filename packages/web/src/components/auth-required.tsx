@@ -1,6 +1,7 @@
 import { Text } from "@mantine/core";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/auth";
+import ProfileProvider from "./profile-provider";
 
 const AuthRequired = () => {
   const { uid, loading } = useAuth();
@@ -14,7 +15,11 @@ const AuthRequired = () => {
     return <Navigate to="/" state={{ from: location.pathname }} />;
   }
 
-  return <Outlet />;
+  return (
+    <ProfileProvider>
+      <Outlet />
+    </ProfileProvider>
+  );
 };
 
 export default AuthRequired;

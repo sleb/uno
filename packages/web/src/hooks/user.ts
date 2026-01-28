@@ -1,9 +1,11 @@
 import type { User } from "@uno/shared";
-import { useContext } from "react";
-import { ProfileContext } from "../context/profile";
+import { useProfile } from "./profile";
 
 export const useUser = (): User => {
-  const user = useContext(ProfileContext);
+  const { user, loading } = useProfile();
+  if (loading) {
+    throw new Error("useUser called before profile state is ready");
+  }
   if (!user) {
     throw new Error("useUser must be used within a ProfileContext provider");
   }

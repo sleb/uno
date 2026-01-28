@@ -1,4 +1,11 @@
 import type { User } from "@uno/shared";
 import { createContext } from "react";
 
-export const ProfileContext = createContext<User | null>(null);
+export type ProfileContextValue = {
+  user: User | null;
+  loading: boolean;
+};
+
+export const ProfileContext = createContext<ProfileContextValue | undefined>(
+  undefined,
+);
