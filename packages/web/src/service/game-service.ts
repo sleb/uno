@@ -1,24 +1,25 @@
 import {
-  type CreateGameRequest,
-  CreateGameResponseSchema,
-  type Game,
-  type GameData,
-  type GamePlayer,
-  type GamePlayerData,
-  GamePlayerSchema,
-  GameSchema,
-  type PlayerHand,
-  type PlayerHandData,
-  PlayerHandSchema
+    type CreateGameRequest,
+    CreateGameResponseSchema,
+    type Game,
+    type GameData,
+    type GamePlayer,
+    type GamePlayerData,
+    GamePlayerSchema,
+    GameSchema,
+    type PlayerHand,
+    type PlayerHandData,
+    PlayerHandSchema
 } from "@uno/shared";
 import {
-  collection,
-  doc,
-  type FirestoreDataConverter,
-  onSnapshot,
-  query,
-  type QueryDocumentSnapshot,
-  where,
+    collection,
+    doc,
+    type FirestoreDataConverter,
+    getDoc,
+    onSnapshot,
+    query,
+    type QueryDocumentSnapshot,
+    where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase";
@@ -79,23 +80,52 @@ export const onGameUpdate = (
   gameId: string,
   onUpdate: (game: Game) => void,
 ): (() => void) => {
-  return onSnapshot(gameRef(gameId), (snapshot) => {
-    if (!snapshot.exists()) {
-      throw new Error(`Game ${gameId} not found`);
-    }
-    const game = snapshot.data();
-    onUpdate(game);
-  });
+  return onSnapshot(
+    gameRef(gameId),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        console.warn(`Game ${gameId} not found`);
+        return;
+      }
+      const game = snapshot.data();
+      onUpdate(game);
+    },
+    (error) => {
+      console.error("Firestore listener error (onGameUpdate):", error);
+    },
+  );
 };
 
 export const onGamePlayersUpdate = (
   gameId: string,
   onUpdate: (players: GamePlayer[]) => void,
 ): (() => void) => {
-  return onSnapshot(gamePlayersRef(gameId), (snapshot) => {
-    const players = snapshot.docs.map((doc) => doc.data());
-    onUpdate(players);
+  let cancelled = false;
+  let unsubscribe: (() => void) | null = null;
+
+  // Check parent game exists before subscribing to players subcollection
+  getDoc(gameRef(gameId)).then((snap) => {
+    if (cancelled) return;
+    if (!snap.exists()) {
+      console.warn(`Game ${gameId} not found — skipping players listener`);
+      return;
+    }
+    unsubscribe = onSnapshot(
+      gamePlayersRef(gameId),
+      (snapshot) => {
+        const players = snapshot.docs.map((doc) => doc.data());
+        onUpdate(players);
+      },
+      (error) => {
+        console.error("Firestore listener error (onGamePlayersUpdate):", error);
+      },
+    );
   });
+
+  return () => {
+    cancelled = true;
+    if (unsubscribe) unsubscribe();
+  };
 };
 
 export const onUserGamesUpdate = (
@@ -107,10 +137,16 @@ export const onUserGamesUpdate = (
     where("players", "array-contains", userId),
   );
 
-  return onSnapshot(userGamesQuery, (snapshot) => {
-    const games = snapshot.docs.map((doc) => doc.data());
-    onUpdate(games);
-  });
+  return onSnapshot(
+    userGamesQuery,
+    (snapshot) => {
+      const games = snapshot.docs.map((doc) => doc.data());
+      onUpdate(games);
+    },
+    (error) => {
+      console.error("Firestore listener error (onUserGamesUpdate):", error);
+    },
+  );
 };
 
 export const onPlayerHandUpdate = (
@@ -118,11 +154,34 @@ export const onPlayerHandUpdate = (
   playerId: string,
   onUpdate: (hand: PlayerHand) => void,
 ): (() => void) => {
-  return onSnapshot(doc(playerHandsRef(gameId), playerId), (snapshot) => {
-    if (!snapshot.exists()) {
-      throw new Error(`Player hand for ${playerId} not found`);
+  let cancelled = false;
+  let unsubscribe: (() => void) | null = null;
+
+  // Check parent game exists before subscribing to player hand
+  getDoc(gameRef(gameId)).then((snap) => {
+    if (cancelled) return;
+    if (!snap.exists()) {
+      console.warn(`Game ${gameId} not found — skipping playerHand listener for ${playerId}`);
+      return;
     }
-    const hand = snapshot.data();
-    onUpdate(hand);
+    unsubscribe = onSnapshot(
+      doc(playerHandsRef(gameId), playerId),
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          console.warn(`Player hand for ${playerId} not found`);
+          return;
+        }
+        const hand = snapshot.data();
+        onUpdate(hand);
+      },
+      (error) => {
+        console.error("Firestore listener error (onPlayerHandUpdate):", error);
+      },
+    );
   });
+
+  return () => {
+    cancelled = true;
+    if (unsubscribe) unsubscribe();
+  };
 };
