@@ -112,6 +112,8 @@ export const createGame = async (
       deckSeed: generateDeckSeed(),
       drawPileCount: DECK_SIZE,
       discardPile: [],
+      currentColor: null,
+      mustDraw: 0,
     },
     startedAt: null,
   });
@@ -156,6 +158,7 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
       joinedAt: now,
       cardCount: 0,
       hasCalledUno: false,
+      mustCallUno: false,
       status: "waiting",
       lastActionAt: now,
       gameStats: {
@@ -254,6 +257,8 @@ export const startGame = async (gameId: string): Promise<void> => {
       "state.currentTurnPlayerId": players[0],
       "state.drawPileCount": remainingDrawPileCount,
       "state.discardPile": startingDiscardPile,
+      "state.currentColor": null,
+      "state.mustDraw": 0,
     });
   });
 };

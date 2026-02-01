@@ -196,7 +196,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
             {myHand && myHand.hand.length > 0 ? (
               <Group gap="sm" justify="center">
                 {myHand.hand.map((card, index) => (
-                  <UnoCardDisplay key={index} card={card} clickable />
+                  <UnoCardDisplay key={`${card.kind}-${card.value}-${index}`} card={card} clickable />
                 ))}
               </Group>
             ) : (

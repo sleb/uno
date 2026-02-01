@@ -69,6 +69,8 @@ export const GameDataSchema = z.object({
     deckSeed: z.string(),
     drawPileCount: z.number(),
     discardPile: z.array(CardSchema),
+    currentColor: ColorSchema.nullable().default(null),
+    mustDraw: z.number().min(0).default(0),
   }),
 });
 
@@ -93,6 +95,7 @@ export const GamePlayerDataSchema = z.object({
   joinedAt: z.iso.datetime(),
   cardCount: z.number(),
   hasCalledUno: z.boolean(),
+  mustCallUno: z.boolean().default(false),
   status: z.enum(Object.values(PLAYER_STATUSES)),
   lastActionAt: z.iso.datetime(),
   gameStats: z.object({
@@ -130,6 +133,29 @@ export const StartGameRequestSchema = z.object({
   gameId: z.string(),
 });
 
+export const PlayCardRequestSchema = z.object({
+  gameId: z.string(),
+  cardIndex: z.number().int().min(0),
+  chosenColor: ColorSchema.optional(),
+});
+
+export const PlayCardResponseSchema = z.object({
+  winner: z.string().optional(),
+});
+
+export const DrawCardRequestSchema = z.object({
+  gameId: z.string(),
+  count: z.number().int().min(1).max(10).default(1),
+});
+
+export const DrawCardResponseSchema = z.object({
+  cards: z.array(CardSchema),
+});
+
+export const CallUnoRequestSchema = z.object({
+  gameId: z.string(),
+});
+
 export type UserData = z.infer<typeof UserDataSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type GameData = z.infer<typeof GameDataSchema>;
@@ -148,4 +174,9 @@ export type PlayerHand = z.infer<typeof PlayerHandSchema>;
 export type CreateGameRequest = z.infer<typeof CreateGameRequestSchema>;
 export type CreateGameResponse = z.infer<typeof CreateGameResponseSchema>;
 export type StartGameRequest = z.infer<typeof StartGameRequestSchema>;
+export type PlayCardRequest = z.infer<typeof PlayCardRequestSchema>;
+export type PlayCardResponse = z.infer<typeof PlayCardResponseSchema>;
+export type DrawCardRequest = z.infer<typeof DrawCardRequestSchema>;
+export type DrawCardResponse = z.infer<typeof DrawCardResponseSchema>;
+export type CallUnoRequest = z.infer<typeof CallUnoRequestSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;
