@@ -15,12 +15,17 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import type { Game } from "@uno/shared";
-import { useEffect, useState } from "react";
+import type { Game, GamePlayer } from "@uno/shared";
+import { useEffect, useMemo, useState } from "react";
 import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useUser } from "../../hooks/user";
-import { joinGame, onGameUpdate, startGame } from "../../service/game-service";
+import {
+  joinGame,
+  onGamePlayersUpdate,
+  onGameUpdate,
+  startGame,
+} from "../../service/game-service";
 import GameBoard from "./game-board";
 import PlayersSection from "./players-section";
 
@@ -71,7 +76,10 @@ const GamePage = () => {
     return <GameBoard game={game} currentUserId={user.id} />;
   }
 
-  // Placeholder for completed state
+  if (game.state.status === "completed") {
+    return <CompletedGame game={game} currentUserId={user.id} />;
+  }
+
   return (
     <Center h="60vh">
       <Text>Game state: {game.state.status} (not yet implemented)</Text>
@@ -79,6 +87,80 @@ const GamePage = () => {
   );
 };
 
+interface CompletedGameProps {
+  game: Game;
+  currentUserId: string;
+}
+
+const CompletedGame = ({ game, currentUserId }: CompletedGameProps) => {
+  const [players, setPlayers] = useState<GamePlayer[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    return onGamePlayersUpdate(game.id, setPlayers);
+  }, [game.id]);
+
+  const sortedPlayers = useMemo(() => {
+    const playerMap = new Map(players.map((player) => [player.id, player]));
+    return game.players
+      .map((playerId) => playerMap.get(playerId))
+      .filter((player): player is GamePlayer => player !== undefined);
+  }, [game.players, players]);
+
+  const winner = sortedPlayers.find((player) => player.status === "winner");
+  const winnerLabel = winner
+    ? winner.id === currentUserId
+      ? "You won!"
+      : `${winner.displayName} won!`
+    : "Game complete";
+
+  return (
+    <Center h="60vh">
+      <Stack gap="lg" align="center" maw={600} w="100%">
+        <Title order={2}>Game Over</Title>
+        <Badge
+          size="xl"
+          variant="gradient"
+          gradient={{ from: "unoGreen.4", to: "green", deg: 90 }}
+        >
+          {winnerLabel}
+        </Badge>
+        <Card withBorder shadow="sm" radius="md" p="lg" w="100%">
+          <Stack gap="sm">
+            <Text fw={600}>Final Cards</Text>
+            {sortedPlayers.length === 0 ? (
+              <Text c="dimmed">Loading results...</Text>
+            ) : (
+              <Stack gap="xs">
+                {sortedPlayers.map((player) => (
+                  <Group key={player.id} justify="space-between">
+                    <Text fw={player.id === winner?.id ? 600 : 400}>
+                      {player.displayName}
+                      {player.id === currentUserId ? " (You)" : ""}
+                    </Text>
+                    <Badge
+                      color={player.id === winner?.id ? "unoGreen" : "gray"}
+                      variant="light"
+                    >
+                      {player.cardCount} {player.cardCount === 1 ? "card" : "cards"}
+                    </Badge>
+                  </Group>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Card>
+        <Button
+          variant="gradient"
+          gradient={{ from: "unoBlue.4", to: "cyan", deg: 90 }}
+          onClick={() => navigate("/dashboard")}
+        >
+          Return to Dashboard
+        </Button>
+      </Stack>
+    </Center>
+  );
+};
 interface WaitingLobbyProps {
   game: Game;
   currentUserId: string;

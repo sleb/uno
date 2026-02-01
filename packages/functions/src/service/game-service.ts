@@ -21,7 +21,6 @@ import {
   applyCardEffect,
   getNextPlayerId,
   isCardPlayable,
-  isDrawCard,
 } from "./card-validation";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
 
@@ -482,8 +481,7 @@ export const playCard = async (
       throw new Error("Not your turn");
     }
 
-    const player = await getGamePlayer(gameId, playerId, t);
-    const playerHand = await getPlayerHand(gameId, playerId, t);
+        const playerHand = await getPlayerHand(gameId, playerId, t);
     const playedCard = playerHand.hand[cardIndex];
 
     if (!playedCard) {
@@ -589,7 +587,6 @@ export const drawCard = async (
       throw new Error("Not your turn");
     }
 
-    const player = await getGamePlayer(gameId, playerId, t);
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const playerHands = await getPlayerHands(gameId, game.players, t);
     const drawCount = game.state.mustDraw > 0 ? game.state.mustDraw : count;
@@ -650,8 +647,6 @@ export const callUno = async (
     if (currentIndex < 0) {
       throw new Error(`Player ${playerId} is not in game ${gameId}`);
     }
-
-    const player = await getGamePlayer(gameId, playerId, t);
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const now = new Date().toISOString();
 
