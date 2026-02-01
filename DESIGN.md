@@ -4,14 +4,21 @@
 
 A web-based, asynchronous, multiplayer Uno card game using Firebase as the backend. Players can join games and play at their own pace without needing to be online simultaneously.
 
+## Documentation
+
+- **[README.md](README.md)** - Project overview, setup instructions, and quick start guide
+- **[GAME_RULES.md](GAME_RULES.md)** - Official UNO card game rules and house rules variants
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guide for AI assistants (build/test commands, architecture, conventions)
+
 ## Technology Stack
 
-- **Frontend**: Web-based (HTML/CSS/JavaScript)
-- **Backend**: Firebase
-  - Firestore (database)
-  - Firebase Authentication
-  - Firebase Cloud Functions (game logic)
-  - Firebase Cloud Messaging (notifications)
+See [README.md](README.md#technology-stack) for full technology stack details.
+
+Summary:
+- **Frontend**: React 19, React Router v7, Mantine 8, TanStack Query
+- **Backend**: Firebase Cloud Functions (Node 22), Firestore
+- **Shared**: Zod schemas for validation
+- **Runtime**: Bun (monorepo with workspaces)
 
 ---
 
@@ -110,9 +117,9 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 **Features**:
 
-- Official Uno rules
+- Official Uno rules (see [GAME_RULES.md](GAME_RULES.md) for complete rules)
 - Explanation of special cards
-- House rules that can be enabled
+- House rules that can be enabled (stacking, jumpIn, sevenSwap, drawToMatch, zeroRotation)
 - How asynchronous play works
 
 ---
@@ -168,8 +175,9 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
   // Game Configuration
   config: {
     isPrivate: boolean,        // Private or public game
-    maxPlayers: number,        // 2-10 players
+    maxPlayers: number,        // 2-10 players (see GAME_RULES.md)
     houseRules: string[],      // Array of HouseRule enums: 'stacking' | 'jumpIn' | 'sevenSwap' | 'drawToMatch' | 'zeroRotation'
+                              // See GAME_RULES.md for house rule descriptions
   },
 
   // Players in game
@@ -259,6 +267,8 @@ A web-based, asynchronous, multiplayer Uno card game using Firebase as the backe
 
 ### 5. Card Management
 
+**Card deck composition**: The canonical 108-card UNO deck is defined in [GAME_RULES.md](GAME_RULES.md#contents).
+
 **Card object structure**:
 
 ```javascript
@@ -333,10 +343,17 @@ This approach:
 
 ---
 
-## Next Steps
+## Implementation Notes
 
-- Define Firebase security rules
-- Plan notification system for turn alerts
-- Create wireframes for each page
-- Implement Cloud Functions for game logic
-- Design real-time listeners and data synchronization
+**Current Status**: MVP implementation complete with basic game flow (create, join, start games).
+
+**See Also**:
+- [README.md](README.md) for setup and development workflow
+- [.github/copilot-instructions.md](.github/copilot-instructions.md) for implementation patterns and conventions
+- Implementation details in `packages/functions/src/service/` (deck-utils.ts, game-service.ts)
+
+**Future Enhancements**:
+- Firebase security rules refinement
+- Notification system for turn alerts (Firebase Cloud Messaging)
+- Game history and statistics tracking
+- Friend/invite system

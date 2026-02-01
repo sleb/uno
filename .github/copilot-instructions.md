@@ -4,12 +4,52 @@
 
 Bun-based monorepo for **Uno**, an asynchronous multiplayer card game using Firebase. Three packages: `@uno/web` (React frontend), `@uno/functions` (Cloud Functions backend), `@uno/shared` (Zod schemas and types).
 
+## Build, Test, and Lint Commands
+
+**Linting** (from root or any package directory):
+```bash
+bun run lint          # Run Biome linter (check only)
+biome lint --write    # Auto-fix linting issues
+```
+
+**Building**:
+```bash
+# Web (production build with minification)
+cd packages/web && bun run build    # Uses build.ts script
+
+# Functions (production build targeting Node 22)
+cd packages/functions && bun run build    # Uses build.ts script
+```
+
+**Development servers**:
+```bash
+# Web (hot-reload dev server)
+cd packages/web && bun dev
+
+# Web (serve production build)
+cd packages/web && bun start
+
+# Firebase emulators (required for local development)
+firebase emulators:start    # Runs auth:9099, firestore:8080, functions:5001
+```
+
+**Testing**:
+```bash
+# Run all tests
+bun test
+
+# Run specific test file
+bun test packages/functions/src/service/game-service.test.ts
+
+# Watch mode
+bun test --watch
+```
+
+Tests use Bun's built-in test runner (imported from `bun:test`). No Jest or Vitest.
+
 ## Setup & Development
 
-**Install & run**: From root, `bun install` (hoists workspace deps). Per-package:
-
-- **Web**: `packages/web` → `bun dev` (hot-reload), `bun build ./src/index.html --outdir=dist --sourcemap --target=browser --env='UNO_PUBLIC_*'`, `bun start` (serves dist)
-- **Functions**: `packages/functions` → `bun build src/index.ts --outdir dist --target node --format cjs --external firebase-admin --external firebase-functions` (target Node 22)
+**Install & run**: From root, `bun install` (hoists workspace deps).
 
 **Environment**: Web loads env vars prefixed `UNO_PUBLIC_` from `.env` (no dotenv needed; Bun auto-loads). When `NODE_ENV !== "production"`, client auto-connects to emulators (9099 auth, 8080 firestore, 5001 functions). Set up emulators locally via Firebase CLI for development.
 
@@ -42,29 +82,40 @@ const ref = doc(db, "users", uid).withConverter(converter);
 
 **Cloud Function structure**: Each function in a separate file (e.g., [packages/functions/src/create-game-function.ts](packages/functions/src/create-game-function.ts)) validates auth, parses request, calls service, catches errors. Service layer ([packages/functions/src/service/game-service.ts](packages/functions/src/service/game-service.ts)) handles Firestore logic with optional transaction param for reuse in transactions.
 
-**UI components**: React 19 with React Router v7. Mantine 8 for components & theming ([packages/web/src/theme.tsx](packages/web/src/theme.tsx)). TanStack Query not yet integrated (future). Wrapper components like `AuthRequired` and `ProfileRequired` handle gating and provide context to children.
+**UI components**: React 19 with React Router v7. Mantine 8 for components & theming ([packages/web/src/theme.tsx](packages/web/src/theme.tsx)). TanStack Query integrated for server state management. Wrapper components like `AuthRequired` and `ProfileRequired` handle gating and provide context to children.
+
+**Deck management**: Uses deterministic card generation via seed-based algorithm ([packages/functions/src/service/deck-utils.ts](packages/functions/src/service/deck-utils.ts)). Draw pile is computed on-demand by removing discard pile and player hands from canonical 108-card deck, then using `deckSeed` to shuffle. This prevents card duplication and enables efficient reshuffling when deck exhausts.
 
 ## Firestore Collections & Conventions
 
 Structure (from [DESIGN.md](DESIGN.md)):
 
-- `/users/{userId}` – Profile (displayName, avatar, email, stats)
-- `/games/{gameId}` – Game metadata (config, players array, game state)
-- `/games/{gameId}/players/{userId}` – Player state (hand, cardCount, status, gameStats)
+- `/users/{userId}` – Profile (displayName, avatar)
+- `/games/{gameId}` – Game metadata (config, players array, game state, discard pile)
+- `/games/{gameId}/players/{userId}` – Public player state (displayName, avatar, cardCount, status, gameStats)
+- `/games/{gameId}/playerHands/{userId}` – Private hand data (readable only by owner via security rules)
 
-Align new fields with DESIGN.md. Keep player data in subcollection for scalability (don't fetch all players' hands unless needed).
+**Important**: Player hands are in a separate subcollection with strict security rules. Align new fields with DESIGN.md. Keep player data in subcollection for scalability (don't fetch all players' hands unless needed).
 
 ## Common Tasks
 
-- **Add a Cloud Function**: Create file in `packages/functions/src/` (e.g., `foo-function.ts`), export handler, add to [packages/functions/src/index.ts](packages/functions/src/index.ts). Export service logic separately.
-- **Add Firestore data**: Define Zod schema in [packages/shared/src/types.ts](packages/shared/src/types.ts), export from [packages/shared/src/index.ts](packages/shared/src/index.ts), use converter pattern in both frontend and backend.
-- **Add UI page**: Create component in `packages/web/src/components/{feature}/`, add route to router, wrap with appropriate auth gate.
-- **Debug locally**: Set `NODE_ENV=development`, start Firebase emulators (ports 9099/8080/5001), run `bun dev` for web and functions.
+- **Add a Cloud Function**: Create file in `packages/functions/src/` (e.g., `foo-function.ts`), export handler as `onCall()`, add to [packages/functions/src/index.ts](packages/functions/src/index.ts). Export service logic separately for reusability in transactions.
+- **Add Firestore data**: Define Zod schema in [packages/shared/src/types.ts](packages/shared/src/types.ts), export from [packages/shared/src/index.ts](packages/shared/src/index.ts), use converter pattern in both frontend and backend. Parse all Firestore data before use.
+- **Add UI page**: Create component in `packages/web/src/components/{feature}/`, add route to [router.tsx](packages/web/src/router.tsx), wrap with appropriate auth gate (`AuthRequired` or `ProfileRequired`).
+- **Debug locally**: Set `NODE_ENV=development`, start Firebase emulators (`firebase emulators:start` on ports 9099/8080/5001), run `bun dev` in `packages/web`.
+- **Add tests**: Create `*.test.ts` file next to code, import from `bun:test`, use `describe`, `test`, `expect`. Run with `bun test` or `bun test --watch`.
 
 ## Conventions
 
-- Prefer Zod for all validation; parse early (at Firestore read/API call boundaries).
-- Use Firestore converters for type safety and consistent parsing.
-- Keep environment config in `.env` with `UNO_PUBLIC_` prefix for client exposure.
-- Avoid mutable default exports; prefer named exports.
-- Use Bun for all scripts, builds, and eventual testing (not Node, npm, Vite, Jest).
+- **Validation**: Always use Zod schemas for all data validation; parse early (at Firestore read/API call boundaries). Never trust raw Firestore data.
+- **Type Safety**: Use `z.infer<typeof Schema>` for TypeScript types. Use Firestore converters with `withConverter()` for automatic parsing.
+- **Environment**: Keep config in `.env` with `UNO_PUBLIC_` prefix for client exposure. Bun auto-loads `.env` files.
+- **Exports**: Named exports only; avoid mutable default exports.
+- **Build Tools**: Use Bun exclusively for scripts, builds, and testing (not Node, npm, Vite, Webpack, Jest, or Vitest).
+- **Code Organization**: 
+  - One Cloud Function per file with matching service function
+  - UI components in feature-based directories under `packages/web/src/components/`
+  - Shared hooks in `packages/web/src/hooks/`
+  - Context providers export custom hooks (e.g., `AuthContext` exports `useUid()`)
+- **Error Handling**: Cloud Functions throw `HttpsError` for client-facing errors; log unexpected errors before throwing.
+- **Formatting**: Biome handles formatting (2-space indentation). Run `biome lint --write` to auto-fix.
