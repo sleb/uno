@@ -29,7 +29,7 @@ describe("generateCardAtIndex", () => {
 
   test("matches official UNO deck histogram", () => {
     const seed = "count-seed";
-    const deck = Array.from({ length: 108 }, (_, i) =>
+    const _deck = Array.from({ length: 108 }, (_, i) =>
       generateCardAtIndex(seed, i),
     );
   });

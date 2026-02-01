@@ -9,35 +9,33 @@ const COLORS: Array<"red" | "yellow" | "green" | "blue"> = [
   "blue",
 ];
 
-const NUMBER_VALUES: Array<
-  "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-> = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const NUMBER_VALUES: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-const SPECIAL_VALUES: Array<"skip" | "reverse" | "draw-two"> = [
+const SPECIAL_VALUES: Array<"skip" | "reverse" | "draw2"> = [
   "skip",
   "reverse",
-  "draw-two",
+  "draw2",
 ];
 
 const buildOrderedDeck = (): Card[] => {
   const deck: Card[] = [];
 
   for (const color of COLORS) {
-    deck.push(CardSchema.parse({ color, value: "0" }));
+    deck.push(CardSchema.parse({ kind: "number", color, value: 0 }));
     for (const value of NUMBER_VALUES.slice(1)) {
-      deck.push(CardSchema.parse({ color, value }));
-      deck.push(CardSchema.parse({ color, value }));
+      deck.push(CardSchema.parse({ kind: "number", color, value }));
+      deck.push(CardSchema.parse({ kind: "number", color, value }));
     }
 
     for (const value of SPECIAL_VALUES) {
-      deck.push(CardSchema.parse({ color, value }));
-      deck.push(CardSchema.parse({ color, value }));
+      deck.push(CardSchema.parse({ kind: "special", color, value }));
+      deck.push(CardSchema.parse({ kind: "special", color, value }));
     }
   }
 
   for (let i = 0; i < 4; i++) {
-    deck.push(CardSchema.parse({ value: "wild" }));
-    deck.push(CardSchema.parse({ value: "wild-draw-four" }));
+    deck.push(CardSchema.parse({ kind: "wild", value: "wild" }));
+    deck.push(CardSchema.parse({ kind: "wild", value: "wild_draw4" }));
   }
 
   return deck;

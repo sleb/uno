@@ -30,11 +30,12 @@ const NumberCardSchema = z.object({
 });
 const SpecialCardSchema = z.object({
   kind: z.literal("special"),
-  value: z.enum(["skip", "reverse", "draw-two"]),
+  color: ColorSchema,
+  value: z.enum(["skip", "reverse", "draw2"]),
 });
 const WildCardSchema = z.object({
   kind: z.literal("wild"),
-  value: z.enum(["wild", "wild-draw-four"]),
+  value: z.enum(["wild", "wild_draw4"]),
 });
 
 export const CardSchema = z.discriminatedUnion("kind", [

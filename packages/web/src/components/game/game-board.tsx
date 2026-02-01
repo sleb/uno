@@ -217,7 +217,7 @@ interface UnoCardDisplayProps {
 }
 
 const UnoCardDisplay = ({ card, clickable }: UnoCardDisplayProps) => {
-  const isWild = card.value === "wild" || card.value === "wild-draw-four";
+  const isWild = card.value === "wild" || card.value === "wild_draw4";
   const color: "red" | "yellow" | "green" | "blue" | "gray" = isWild
     ? "gray"
     : "color" in card
@@ -256,11 +256,11 @@ const UnoCardDisplay = ({ card, clickable }: UnoCardDisplayProps) => {
       }}
     >
       <Text size="xl" fw={700} c="white" ta="center">
-        {card.value === "wild-draw-four"
+        {card.value === "wild_draw4"
           ? "+4"
           : card.value === "wild"
             ? "W"
-            : card.value === "draw-two"
+            : card.value === "draw2"
               ? "+2"
               : card.value === "skip"
                 ? "⊘"

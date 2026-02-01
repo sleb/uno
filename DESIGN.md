@@ -191,8 +191,8 @@ Summary:
     deckSeed: string,          // Random seed for deck generation (updated on reshuffle)
     drawPileCount: number,     // Cards remaining in draw pile
     discardPile: [{            // Discard pile (most recent card at end)
-      color: string,           // 'red' | 'yellow' | 'green' | 'blue' (wild cards have no color)
-      value: string,           // '0'-'9' | 'skip' | 'reverse' | 'draw-two' | 'wild' | 'wild-draw-four'
+      color: string,           // 'red' | 'yellow' | 'green' | 'blue' (special cards; wild cards have no color field)
+      value: string | number,  // number: 0-9 | string: 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
     }],
   },
 }
@@ -255,8 +255,8 @@ Summary:
 {
   // Cards in hand (visible only to the owner via Firestore security rules)
   hand: [{
-    color: string,             // 'red' | 'yellow' | 'green' | 'blue' (wild cards have no color)
-    value: string,             // '0'-'9' | 'skip' | 'reverse' | 'draw-two' | 'wild' | 'wild-draw-four'
+    color: string,             // 'red' | 'yellow' | 'green' | 'blue' (special cards; wild cards have no color field)
+    value: string | number,    // number: 0-9 | string: 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
   }],
 }
 ```
@@ -273,8 +273,9 @@ Summary:
 
 ```javascript
 {
-  color: string,               // 'red' | 'blue' | 'green' | 'yellow' | 'wild'
-  value: string,               // '0'-'9' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
+  kind: string,                // 'number' | 'special' | 'wild'
+  color: string,               // 'red' | 'blue' | 'green' | 'yellow' (number and special cards only)
+  value: string | number,      // number: 0-9 (number cards) | string: 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild_draw4'
 }
 ```
 
