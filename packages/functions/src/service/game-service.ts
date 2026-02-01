@@ -1,6 +1,5 @@
 import {
   type Card,
-  CardSchema,
   type CreateGameRequest,
   GAME_STATUSES,
   type GameData,
@@ -8,7 +7,7 @@ import {
   type GamePlayerData,
   type PlayerHandData,
   type UserData,
-  UserDataSchema
+  UserDataSchema,
 } from "@uno/shared";
 import type {
   DocumentReference,
@@ -16,6 +15,7 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
+import { generateCardAtIndex } from "./deck-utils";
 
 const DECK_SIZE = 108;
 
@@ -67,55 +67,6 @@ const getUser = async (
 
 const generateDeckSeed = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
-};
-
-/**
- * Generates a card at a specific index using the deck seed.
- * Uses a deterministic algorithm to ensure consistent card generation.
- */
-const generateCardAtIndex = (seed: string, index: number): Card => {
-  // Create a hash from seed and index to get a deterministic random value
-  const hashInput = seed + index.toString();
-  let hash = 0;
-  for (let i = 0; i < hashInput.length; i++) {
-    const char = hashInput.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-
-  const absHash = Math.abs(hash);
-
-  // First 40 cards are numbered 0-9 (4 of each color, 10 per color)
-  if (absHash % 108 < 40) {
-    const colorIndex = Math.floor((absHash % 40) / 10);
-    const colors: Array<"red" | "yellow" | "green" | "blue"> = ["red", "yellow", "green", "blue"];
-    const cardNumber = (absHash % 10).toString() as "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-    return CardSchema.parse({
-      color: colors[colorIndex],
-      value: cardNumber,
-    });
-  }
-
-  // Next 24 cards are special cards: skip, reverse, draw-two (8 of each, 2 per color)
-  if (absHash % 108 < 64) {
-    const specialIndex = (absHash % 24);
-    const specialValues: Array<"skip" | "reverse" | "draw-two"> = ["skip", "reverse", "draw-two"];
-    const specialValue = specialValues[Math.floor(specialIndex / 8)];
-    const colorIndex = Math.floor((specialIndex % 8) / 2);
-    const colors: Array<"red" | "yellow" | "green" | "blue"> = ["red", "yellow", "green", "blue"];
-    return CardSchema.parse({
-      color: colors[colorIndex],
-      value: specialValue,
-    });
-  }
-
-  // Last 44 cards are wild and wild-draw-four
-  const wildValues: Array<"wild" | "wild-draw-four"> = ["wild", "wild-draw-four"];
-  const wildIndex = absHash % 44;
-  const wildValue = wildValues[Math.floor(wildIndex / 22)];
-  return CardSchema.parse({
-    value: wildValue,
-  });
 };
 
 /**
@@ -231,7 +182,7 @@ export const startGame = async (gameId: string): Promise<void> => {
     const game = await getGame(gameId, t);
     const {
       players,
-      state: { status, deckSeed, drawPileCount },
+      state: { status, deckSeed, drawPileCount, discardPile },
     } = game;
 
     if (status !== "waiting") {
@@ -243,30 +194,66 @@ export const startGame = async (gameId: string): Promise<void> => {
     }
 
     const totalCardsToDeal = players.length * CARDS_PER_PLAYER;
-    if (drawPileCount < totalCardsToDeal) {
+    if (drawPileCount <= totalCardsToDeal) {
       throw new Error(
-        `Not enough cards in deck: need ${totalCardsToDeal}, have ${drawPileCount}`,
+        `Not enough cards in deck: need more than ${totalCardsToDeal}, have ${drawPileCount}`,
       );
     }
 
     // Generate cards for all players
-    const dealtCards = await dealCards(deckSeed, drawPileCount, totalCardsToDeal);
+    const dealtCards = await dealCards(
+      deckSeed,
+      drawPileCount,
+      totalCardsToDeal,
+    );
 
     // Assign cards to player hands (create if missing)
     let cardIndex = 0;
     for (const playerId of players) {
-      const playerHand = dealtCards.slice(cardIndex, cardIndex + CARDS_PER_PLAYER);
-      t.set(playerHandRef(gameId, playerId), { hand: playerHand }, { merge: true });
+      const playerHand = dealtCards.slice(
+        cardIndex,
+        cardIndex + CARDS_PER_PLAYER,
+      );
+      t.set(
+        playerHandRef(gameId, playerId),
+        { hand: playerHand },
+        { merge: true },
+      );
       cardIndex += CARDS_PER_PLAYER;
     }
 
-    // Update game state
+    // Draw starting card (must be a number) and update game state
+    let remainingDrawPileCount = drawPileCount - totalCardsToDeal;
+    const startingDiscardPile = [...discardPile];
+    let startingCard: Card | null = null;
+
+    while (remainingDrawPileCount > 0) {
+      const [nextCard] = await dealCards(deckSeed, remainingDrawPileCount, 1);
+      if (!nextCard) {
+        throw new Error("Failed to draw a starting card.");
+      }
+      remainingDrawPileCount -= 1;
+      startingDiscardPile.push(nextCard);
+
+      if (nextCard.kind === "number") {
+        startingCard = nextCard;
+        break;
+      }
+    }
+
+    if (!startingCard) {
+      throw new Error(
+        "Not enough cards in deck to draw a starting number card.",
+      );
+    }
+
     const now = new Date().toISOString();
     t.update(gameRef(gameId), {
       startedAt: now,
       "state.status": GAME_STATUSES.IN_PROGRESS,
       "state.currentTurnPlayerId": players[0],
-      "state.drawPileCount": drawPileCount - totalCardsToDeal,
+      "state.drawPileCount": remainingDrawPileCount,
+      "state.discardPile": startingDiscardPile,
     });
   });
 };

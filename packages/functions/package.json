@@ -1,5 +1,6 @@
 {
   "name": "@uno/functions",
+  "license": "MIT",
   "engines": {
     "node": "22"
   },

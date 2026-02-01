@@ -22,28 +22,25 @@ export const UserSchema = UserDataSchema.extend({
   id: z.string(),
 });
 
-export const CardSchema = z.discriminatedUnion("value", [
-  z.object({
-    color: z.enum(["red", "yellow", "green", "blue"]),
-    value: z.enum([
-      "0",
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "skip",
-      "reverse",
-      "draw-two",
-    ]),
-  }),
-  z.object({
-    value: z.enum(["wild", "wild-draw-four"]),
-  }),
+const ColorSchema = z.enum(["red", "yellow", "green", "blue"]);
+const NumberCardSchema = z.object({
+  kind: z.literal("number"),
+  color: ColorSchema,
+  value: z.number().min(0).max(9),
+});
+const SpecialCardSchema = z.object({
+  kind: z.literal("special"),
+  value: z.enum(["skip", "reverse", "draw-two"]),
+});
+const WildCardSchema = z.object({
+  kind: z.literal("wild"),
+  value: z.enum(["wild", "wild-draw-four"]),
+});
+
+export const CardSchema = z.discriminatedUnion("kind", [
+  NumberCardSchema,
+  SpecialCardSchema,
+  WildCardSchema,
 ]);
 
 export const HouseRuleSchema = z.enum([
@@ -136,6 +133,10 @@ export type UserData = z.infer<typeof UserDataSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type GameData = z.infer<typeof GameDataSchema>;
 export type Game = z.infer<typeof GameSchema>;
+export type Color = z.infer<typeof ColorSchema>;
+export type NumberCard = z.infer<typeof NumberCardSchema>;
+export type SpecialCard = z.infer<typeof SpecialCardSchema>;
+export type WildCard = z.infer<typeof WildCardSchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 export type Player = z.infer<typeof PlayerSchema>;

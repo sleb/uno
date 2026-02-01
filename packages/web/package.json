@@ -1,10 +1,12 @@
 {
   "name": "@uno/web",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/index.ts",
+    "lint": "biome lint",
     "build": "NODE_ENV=production bun run build.ts",
     "start": "NODE_ENV=production bun src/index.ts"
   },

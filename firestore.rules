@@ -2,13 +2,20 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function gameDoc(gameId) {
+      return get(/databases/$(database)/documents/games/$(gameId));
+    }
+
     function canReadGame(gameId) {
-      let game = get(/databases/$(database)/documents/games/$(gameId));
-      return game.data != null
-        && (
-          (game.data.state != null && game.data.state.status == "waiting")
-          || (game.data.players != null && request.auth.uid in game.data.players)
-        );
+      let game = gameDoc(gameId);
+      return gameId != null
+        && gameId.size() > 0
+        && (game.data != null
+          ? (
+            (game.data.state != null && game.data.state.status == "waiting")
+            || (game.data.players != null && request.auth.uid in game.data.players)
+          )
+          : false);
     }
 
     // User profiles:
