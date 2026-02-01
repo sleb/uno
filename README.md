@@ -2,6 +2,13 @@
 
 A Bun-based monorepo for **Uno**, an asynchronous multiplayer card game using Firebase and React. Players can create games, invite others, and play in real-time with real-time Firestore updates.
 
+## Documentation
+
+- **[DESIGN.md](DESIGN.md)** - Architecture and data model design
+- **[GAME_RULES.md](GAME_RULES.md)** - Official UNO rules and house rules variants
+- **[ROADMAP.md](ROADMAP.md)** - Project roadmap, implementation status, and planned features
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guide for AI assistants
+
 ## Project Structure
 
 This monorepo contains three main packages:
