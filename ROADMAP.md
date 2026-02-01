@@ -3,9 +3,9 @@
 ## Current Status
 
 **MVP Game Setup: ✅ Complete**  
-**Core Gameplay: ❌ Not Implemented**
+**Core Gameplay: 🚧 In Progress (Scaffolding complete)**
 
-Players can create, join, and start games, but cannot yet play cards, draw cards, or finish games. The infrastructure is ready; gameplay logic is the primary blocker.
+Players can create, join, and start games. Gameplay schemas, validation helpers, and state fields are in place, but players cannot yet play cards, draw cards, or finish games. Core gameplay functions remain the primary blocker.
 
 ---
 
@@ -33,6 +33,8 @@ Players can create, join, and start games, but cannot yet play cards, draw cards
 - Player data management (profiles, avatars, card counts)
 - Turn tracking and direction (clockwise/counter-clockwise)
 - Firestore security rules for private player hands
+- Gameplay schemas and validation helpers
+- Initial gameplay state fields (currentColor, mustDraw, mustCallUno)
 
 ---
 
