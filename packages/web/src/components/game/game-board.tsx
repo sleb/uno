@@ -6,15 +6,25 @@ import {
   Center,
   Grid,
   Group,
+  Modal,
   Paper,
+  SimpleGrid,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
-import type { Game, GamePlayer, PlayerHand, Card as UnoCard } from "@uno/shared";
-import { useEffect, useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import type { Card as UnoCard, Color, Game, GamePlayer, PlayerHand } from "@uno/shared";
+import { useEffect, useMemo, useState } from "react";
 import { FaArrowRight, FaHandPaper, FaRedo, FaUndo } from "react-icons/fa";
-import { onGamePlayersUpdate, onPlayerHandUpdate } from "../../service/game-service";
+import {
+  callUno,
+  drawCard,
+  onGamePlayersUpdate,
+  onPlayerHandUpdate,
+  playCard,
+} from "../../service/game-service";
+import { notifyError, notifyInfo, notifySuccess } from "../notifications";
 
 interface GameBoardProps {
   game: Game;
@@ -24,10 +34,19 @@ interface GameBoardProps {
 const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [myHand, setMyHand] = useState<PlayerHand | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [wildCardIndex, setWildCardIndex] = useState<number | null>(null);
+  const [wildPickerOpened, wildPickerHandlers] = useDisclosure(false);
 
   useEffect(() => {
-    return onGamePlayersUpdate(game.id, setPlayers);
-  }, [game.id]);
+    return onGamePlayersUpdate(game.id, (updatedPlayers) => {
+      const playerMap = new Map(updatedPlayers.map((player) => [player.id, player]));
+      const sortedPlayers = game.players
+        .map((playerId) => playerMap.get(playerId))
+        .filter((player): player is GamePlayer => player !== undefined);
+      setPlayers(sortedPlayers);
+    });
+  }, [game.id, game.players]);
 
   useEffect(() => {
     return onPlayerHandUpdate(game.id, currentUserId, setMyHand);
@@ -35,11 +54,151 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
 
   const isMyTurn = game.state.currentTurnPlayerId === currentUserId;
   const currentPlayer = players.find((p) => p.id === game.state.currentTurnPlayerId);
+  const myPlayer = players.find((player) => player.id === currentUserId);
   const topCard = game.state.discardPile[game.state.discardPile.length - 1];
+  const activeColor = useMemo(() => {
+    if (game.state.currentColor) {
+      return game.state.currentColor;
+    }
+    if (!topCard || topCard.kind === "wild") {
+      return null;
+    }
+    return topCard.color;
+  }, [game.state.currentColor, topCard]);
+  const canCallUno = players.some((player) => player.mustCallUno);
+  const isDrawRequired = game.state.mustDraw > 0;
+  const drawLabel = isDrawRequired
+    ? `Draw ${game.state.mustDraw}`
+    : "Draw Card";
+
+  const isDrawCard = (card: UnoCard) =>
+    (card.kind === "special" && card.value === "draw2") ||
+    (card.kind === "wild" && card.value === "wild_draw4");
+
+  const isPlayable = (card: UnoCard) => {
+    if (!isMyTurn || !topCard) {
+      return false;
+    }
+    if (game.state.mustDraw > 0 && !isDrawCard(card)) {
+      return false;
+    }
+    if (card.kind === "wild") {
+      return true;
+    }
+    if (activeColor && "color" in card && card.color === activeColor) {
+      return true;
+    }
+    return card.value === topCard.value;
+  };
+
+  const closeWildPicker = () => {
+    wildPickerHandlers.close();
+    setWildCardIndex(null);
+  };
+
+  const handlePlayCard = async (cardIndex: number, chosenColor?: Color) => {
+    setIsProcessing(true);
+    try {
+      await playCard({
+        gameId: game.id,
+        cardIndex,
+        chosenColor,
+      });
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCardClick = (card: UnoCard, index: number) => {
+    if (!isMyTurn || isProcessing) {
+      return;
+    }
+    if (!isPlayable(card)) {
+      notifyInfo({ message: "That card can't be played right now." });
+      return;
+    }
+    if (card.kind === "wild") {
+      setWildCardIndex(index);
+      wildPickerHandlers.open();
+      return;
+    }
+    void handlePlayCard(index);
+  };
+
+  const handleDrawCard = async () => {
+    if (!isMyTurn || isProcessing) {
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await drawCard({ gameId: game.id, count: 1 });
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCallUno = async () => {
+    if (isProcessing || !canCallUno) {
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const result = await callUno({ gameId: game.id });
+      if (result.caughtPlayerId) {
+        const caughtPlayer = players.find(
+          (player) => player.id === result.caughtPlayerId,
+        );
+        notifySuccess({
+          message: caughtPlayer
+            ? `${caughtPlayer.displayName} drew 2 cards for missing UNO.`
+            : "Caught a player without UNO.",
+        });
+      } else {
+        notifySuccess({ message: "UNO called!" });
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleChooseColor = (color: Color) => {
+    if (wildCardIndex === null) {
+      return;
+    }
+    closeWildPicker();
+    void handlePlayCard(wildCardIndex, color);
+  };
 
   return (
     <Box p="md">
       <Stack gap="xl" maw={1200} mx="auto">
+        <Modal
+          opened={wildPickerOpened}
+          onClose={closeWildPicker}
+          title="Choose a color"
+          centered
+        >
+          <SimpleGrid cols={2}>
+            <Button color="unoRed" onClick={() => handleChooseColor("red")}>
+              Red
+            </Button>
+            <Button color="unoYellow" onClick={() => handleChooseColor("yellow")}>
+              Yellow
+            </Button>
+            <Button color="unoGreen" onClick={() => handleChooseColor("green")}>
+              Green
+            </Button>
+            <Button color="unoBlue" onClick={() => handleChooseColor("blue")}>
+              Blue
+            </Button>
+          </SimpleGrid>
+        </Modal>
         {/* Game Header */}
         <Group justify="space-between" align="center">
           <Title order={2}>Uno Game</Title>
@@ -101,11 +260,18 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                             {player.cardCount} {player.cardCount === 1 ? "card" : "cards"}
                           </Text>
                         </Group>
-                        {player.hasCalledUno && (
-                          <Badge size="sm" color="unoRed" variant="filled">
-                            UNO!
-                          </Badge>
-                        )}
+                        <Group gap="xs">
+                          {player.mustCallUno && (
+                            <Badge size="sm" color="unoYellow" variant="filled">
+                              Call UNO
+                            </Badge>
+                          )}
+                          {player.hasCalledUno && (
+                            <Badge size="sm" color="unoRed" variant="filled">
+                              UNO!
+                            </Badge>
+                          )}
+                        </Group>
                       </Stack>
                     </Paper>
                   </Grid.Col>
@@ -148,7 +314,23 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                   Discard Pile
                 </Text>
                 {topCard ? (
-                  <UnoCardDisplay card={topCard} />
+                  <Stack gap="xs" align="center">
+                    <UnoCardDisplay card={topCard} />
+                    {activeColor && (
+                      <Badge
+                        size="sm"
+                        color={{
+                          red: "unoRed",
+                          yellow: "unoYellow",
+                          green: "unoGreen",
+                          blue: "unoBlue",
+                        }[activeColor]}
+                        variant="filled"
+                      >
+                        {activeColor.toUpperCase()}
+                      </Badge>
+                    )}
+                  </Stack>
                 ) : (
                   <Box
                     w={100}
@@ -171,19 +353,42 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
             </Group>
 
             {/* Actions */}
-            {isMyTurn && (
+            <Stack align="center" gap="xs">
               <Group justify="center" gap="md">
-                <Button variant="outline" color="gray" disabled>
-                  Draw Card
+                <Button
+                  variant="outline"
+                  color="gray"
+                  onClick={handleDrawCard}
+                  disabled={!isMyTurn || isProcessing}
+                  loading={isProcessing && isMyTurn}
+                >
+                  {drawLabel}
                 </Button>
-                <Button variant="gradient" gradient={{ from: "unoRed.5", to: "red", deg: 90 }} disabled>
-                  Play Card
-                </Button>
-                <Button variant="outline" color="unoYellow" disabled>
+                <Button
+                  variant="outline"
+                  color="unoYellow"
+                  onClick={handleCallUno}
+                  disabled={!canCallUno || isProcessing}
+                  loading={isProcessing && canCallUno}
+                >
                   Call UNO
                 </Button>
               </Group>
-            )}
+              {isMyTurn ? (
+                <Text size="sm" c="dimmed">
+                  Select a playable card to play.
+                </Text>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  Waiting for your turn to play.
+                </Text>
+              )}
+              {myPlayer?.mustCallUno && (
+                <Badge color="unoYellow" variant="filled">
+                  You must call UNO
+                </Badge>
+              )}
+            </Stack>
           </Stack>
         </Card>
 
@@ -196,7 +401,13 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
             {myHand && myHand.hand.length > 0 ? (
               <Group gap="sm" justify="center">
                 {myHand.hand.map((card, index) => (
-                  <UnoCardDisplay key={`${card.kind}-${card.value}-${index}`} card={card} clickable />
+                  <UnoCardDisplay
+                    key={`${card.kind}-${card.value}-${index}`}
+                    card={card}
+                    clickable
+                    playable={isPlayable(card)}
+                    onClick={() => handleCardClick(card, index)}
+                  />
                 ))}
               </Group>
             ) : (
@@ -214,9 +425,16 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
 interface UnoCardDisplayProps {
   card: UnoCard;
   clickable?: boolean;
+  playable?: boolean;
+  onClick?: () => void;
 }
 
-const UnoCardDisplay = ({ card, clickable }: UnoCardDisplayProps) => {
+const UnoCardDisplay = ({
+  card,
+  clickable,
+  playable,
+  onClick,
+}: UnoCardDisplayProps) => {
   const isWild = card.value === "wild" || card.value === "wild_draw4";
   const color: "red" | "yellow" | "green" | "blue" | "gray" = isWild
     ? "gray"
@@ -233,22 +451,28 @@ const UnoCardDisplay = ({ card, clickable }: UnoCardDisplayProps) => {
   };
 
   const bgColor = colorMap[color];
+  const isInteractive = Boolean(clickable && playable);
+  const boxShadow = playable
+    ? "0 0 0 3px var(--mantine-color-unoYellow-4), 0 2px 4px rgba(0,0,0,0.2)"
+    : "0 2px 4px rgba(0,0,0,0.2)";
 
   return (
     <Box
       w={80}
       h={110}
       bg={bgColor}
+      onClick={onClick}
       style={{
         borderRadius: 8,
         border: "3px solid white",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+        boxShadow,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: clickable ? "pointer" : "default",
+        cursor: clickable ? (isInteractive ? "pointer" : "not-allowed") : "default",
         transition: "transform 0.1s",
-        ...(clickable && {
+        opacity: clickable && !playable ? 0.5 : 1,
+        ...(isInteractive && {
           ":hover": {
             transform: "translateY(-4px)",
           },

@@ -156,6 +156,10 @@ export const CallUnoRequestSchema = z.object({
   gameId: z.string(),
 });
 
+export const CallUnoResponseSchema = z.object({
+  caughtPlayerId: z.string().optional(),
+});
+
 export type UserData = z.infer<typeof UserDataSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type GameData = z.infer<typeof GameDataSchema>;
@@ -179,4 +183,5 @@ export type PlayCardResponse = z.infer<typeof PlayCardResponseSchema>;
 export type DrawCardRequest = z.infer<typeof DrawCardRequestSchema>;
 export type DrawCardResponse = z.infer<typeof DrawCardResponseSchema>;
 export type CallUnoRequest = z.infer<typeof CallUnoRequestSchema>;
+export type CallUnoResponse = z.infer<typeof CallUnoResponseSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;

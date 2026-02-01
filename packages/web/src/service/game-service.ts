@@ -1,25 +1,31 @@
 import {
-    type CreateGameRequest,
-    CreateGameResponseSchema,
-    type Game,
-    type GameData,
-    type GamePlayer,
-    type GamePlayerData,
-    GamePlayerSchema,
-    GameSchema,
-    type PlayerHand,
-    type PlayerHandData,
-    PlayerHandSchema
+  type CallUnoRequest,
+  CallUnoResponseSchema,
+  type CreateGameRequest,
+  CreateGameResponseSchema,
+  type DrawCardRequest,
+  DrawCardResponseSchema,
+  type Game,
+  type GameData,
+  type GamePlayer,
+  type GamePlayerData,
+  GamePlayerSchema,
+  GameSchema,
+  type PlayCardRequest,
+  PlayCardResponseSchema,
+  type PlayerHand,
+  type PlayerHandData,
+  PlayerHandSchema,
 } from "@uno/shared";
 import {
-    collection,
-    doc,
-    type FirestoreDataConverter,
-    getDoc,
-    onSnapshot,
-    query,
-    type QueryDocumentSnapshot,
-    where,
+  collection,
+  doc,
+  type FirestoreDataConverter,
+  getDoc,
+  onSnapshot,
+  query,
+  type QueryDocumentSnapshot,
+  where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase";
@@ -74,6 +80,26 @@ export const joinGame = async (gameId: string): Promise<void> => {
 const startGameFunction = httpsCallable(functions, "startGame");
 export const startGame = async (gameId: string): Promise<void> => {
   await startGameFunction({ gameId });
+};
+
+const playCardFunction = httpsCallable(functions, "playCard");
+export const playCard = async (
+  request: PlayCardRequest,
+): Promise<{ winner?: string }> => {
+  const response = await playCardFunction(request);
+  return PlayCardResponseSchema.parse(response.data);
+};
+
+const drawCardFunction = httpsCallable(functions, "drawCard");
+export const drawCard = async (request: DrawCardRequest) => {
+  const response = await drawCardFunction(request);
+  return DrawCardResponseSchema.parse(response.data);
+};
+
+const callUnoFunction = httpsCallable(functions, "callUno");
+export const callUno = async (request: CallUnoRequest) => {
+  const response = await callUnoFunction(request);
+  return CallUnoResponseSchema.parse(response.data);
 };
 
 export const onGameUpdate = (

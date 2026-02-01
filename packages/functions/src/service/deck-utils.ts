@@ -64,7 +64,7 @@ const mulberry32 = (seed: number): (() => number) => {
 
 const deckCache = new Map<string, Card[]>();
 
-const getDeckForSeed = (seed: string): Card[] => {
+export const getDeckForSeed = (seed: string): Card[] => {
   const cached = deckCache.get(seed);
   if (cached) {
     return cached;

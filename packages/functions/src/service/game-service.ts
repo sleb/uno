@@ -5,7 +5,9 @@ import {
   type GameData,
   GameDataSchema,
   type GamePlayerData,
+  GamePlayerDataSchema,
   type PlayerHandData,
+  PlayerHandDataSchema,
   type UserData,
   UserDataSchema,
 } from "@uno/shared";
@@ -15,7 +17,13 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
-import { generateCardAtIndex } from "./deck-utils";
+import {
+  applyCardEffect,
+  getNextPlayerId,
+  isCardPlayable,
+  isDrawCard,
+} from "./card-validation";
+import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
 
 const DECK_SIZE = 108;
 
@@ -87,6 +95,187 @@ export const dealCards = async (
   }
 
   return cards;
+};
+
+const getGamePlayer = async (
+  gameId: string,
+  playerId: string,
+  t?: Transaction,
+): Promise<GamePlayerData> => {
+  const snapshot = await getDoc(playerRef(gameId, playerId), t);
+
+  if (!snapshot.exists) {
+    throw new Error(`Player ${playerId} not found in game ${gameId}`);
+  }
+
+  return GamePlayerDataSchema.parse(snapshot.data());
+};
+
+const getPlayerHand = async (
+  gameId: string,
+  playerId: string,
+  t?: Transaction,
+): Promise<PlayerHandData> => {
+  const snapshot = await getDoc(playerHandRef(gameId, playerId), t);
+
+  if (!snapshot.exists) {
+    throw new Error(`Player hand for ${playerId} not found in game ${gameId}`);
+  }
+
+  return PlayerHandDataSchema.parse(snapshot.data());
+};
+
+const getPlayerHands = async (
+  gameId: string,
+  playerIds: string[],
+  t?: Transaction,
+): Promise<Record<string, PlayerHandData>> => {
+  const hands: Record<string, PlayerHandData> = {};
+
+  for (const playerId of playerIds) {
+    hands[playerId] = await getPlayerHand(gameId, playerId, t);
+  }
+
+  return hands;
+};
+
+const getGamePlayers = async (
+  gameId: string,
+  playerIds: string[],
+  t?: Transaction,
+): Promise<Record<string, GamePlayerData>> => {
+  const players: Record<string, GamePlayerData> = {};
+
+  for (const playerId of playerIds) {
+    players[playerId] = await getGamePlayer(gameId, playerId, t);
+  }
+
+  return players;
+};
+
+const getTopCard = (discardPile: Card[]): Card => {
+  const topCard = discardPile[discardPile.length - 1];
+
+  if (!topCard) {
+    throw new Error("Discard pile is empty");
+  }
+
+  return topCard;
+};
+
+const isSameCard = (left: Card, right: Card): boolean => {
+  if (left.kind !== right.kind) {
+    return false;
+  }
+
+  if (left.value !== right.value) {
+    return false;
+  }
+
+  if ("color" in left || "color" in right) {
+    return "color" in left && "color" in right && left.color === right.color;
+  }
+
+  return true;
+};
+
+const removeCardFromDeck = (deck: Card[], card: Card): void => {
+  const index = deck.findIndex((candidate) => isSameCard(candidate, card));
+
+  if (index < 0) {
+    throw new Error("Card not found in deck");
+  }
+
+  deck.splice(index, 1);
+};
+
+const buildAvailableDeck = (seed: string, usedCards: Card[]): Card[] => {
+  const deck = [...getDeckForSeed(seed)];
+
+  for (const card of usedCards) {
+    removeCardFromDeck(deck, card);
+  }
+
+  return deck;
+};
+
+const buildUsedCards = (
+  discardPile: Card[],
+  hands: Card[],
+  keepAllDiscards: boolean,
+): Card[] => {
+  const usedCards = [...hands];
+
+  if (discardPile.length > 0) {
+    usedCards.push(
+      ...(keepAllDiscards
+        ? discardPile
+        : [discardPile[discardPile.length - 1]]),
+    );
+  }
+
+  return usedCards;
+};
+
+const collectHandCards = (
+  playerHands: Record<string, PlayerHandData>,
+): Card[] => {
+  return Object.values(playerHands).flatMap((hand) => hand.hand);
+};
+
+const drawCardsFromDeck = ({
+  seed,
+  discardPile,
+  playerHands,
+  count,
+}: {
+  seed: string;
+  discardPile: Card[];
+  playerHands: Record<string, PlayerHandData>;
+  count: number;
+}): {
+  drawnCards: Card[];
+  deckSeed: string;
+  drawPileCount: number;
+  discardPile: Card[];
+} => {
+  const handCards = collectHandCards(playerHands);
+  let deckSeed = seed;
+  let activeDiscardPile = discardPile;
+  let usedCards = buildUsedCards(activeDiscardPile, handCards, true);
+  let availableDeck = buildAvailableDeck(deckSeed, usedCards);
+
+  if (availableDeck.length < count) {
+    if (discardPile.length <= 1) {
+      throw new Error("Not enough cards in deck to draw");
+    }
+
+    deckSeed = generateDeckSeed();
+    activeDiscardPile = [getTopCard(discardPile)];
+    usedCards = buildUsedCards(activeDiscardPile, handCards, false);
+    availableDeck = buildAvailableDeck(deckSeed, usedCards);
+  }
+
+    if (availableDeck.length < count) {
+      throw new Error("Not enough cards in deck to draw");
+    }
+
+  const drawnCards: Card[] = [];
+  const remainingDeck = [...availableDeck];
+  for (let i = 0; i < count; i++) {
+    const nextCard = remainingDeck.shift();
+    if (!nextCard) {
+      throw new Error("Not enough cards in deck to draw");
+    }
+    drawnCards.push(nextCard);
+  }
+
+  return {
+    drawnCards,
+    deckSeed,
+    drawPileCount: remainingDeck.length,
+    discardPile: activeDiscardPile,
+  };
 };
 
 export const createGame = async (
@@ -210,6 +399,8 @@ export const startGame = async (gameId: string): Promise<void> => {
       totalCardsToDeal,
     );
 
+    const now = new Date().toISOString();
+
     // Assign cards to player hands (create if missing)
     let cardIndex = 0;
     for (const playerId of players) {
@@ -222,6 +413,13 @@ export const startGame = async (gameId: string): Promise<void> => {
         { hand: playerHand },
         { merge: true },
       );
+      t.update(playerRef(gameId, playerId), {
+        cardCount: playerHand.length,
+        status: "active",
+        hasCalledUno: false,
+        mustCallUno: false,
+        lastActionAt: now,
+      });
       cardIndex += CARDS_PER_PLAYER;
     }
 
@@ -250,7 +448,6 @@ export const startGame = async (gameId: string): Promise<void> => {
       );
     }
 
-    const now = new Date().toISOString();
     t.update(gameRef(gameId), {
       startedAt: now,
       "state.status": GAME_STATUSES.IN_PROGRESS,
@@ -260,5 +457,256 @@ export const startGame = async (gameId: string): Promise<void> => {
       "state.currentColor": null,
       "state.mustDraw": 0,
     });
+  });
+};
+
+export const playCard = async (
+  gameId: string,
+  playerId: string,
+  cardIndex: number,
+  chosenColor?: string,
+): Promise<{ winner?: string }> => {
+  return await db.runTransaction(async (t) => {
+    const game = await getGame(gameId, t);
+
+    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
+      throw new Error(`Game ${gameId} is not in progress`);
+    }
+
+    const currentIndex = game.players.indexOf(playerId);
+    if (currentIndex < 0) {
+      throw new Error(`Player ${playerId} is not in game ${gameId}`);
+    }
+
+    if (game.state.currentTurnPlayerId !== playerId) {
+      throw new Error("Not your turn");
+    }
+
+    const player = await getGamePlayer(gameId, playerId, t);
+    const playerHand = await getPlayerHand(gameId, playerId, t);
+    const playedCard = playerHand.hand[cardIndex];
+
+    if (!playedCard) {
+      throw new Error("Invalid card index");
+    }
+
+    const topCard = getTopCard(game.state.discardPile);
+    const { currentColor, mustDraw } = game.state;
+
+    if (!isCardPlayable(playedCard, topCard, currentColor, mustDraw)) {
+      throw new Error("Card cannot be played");
+    }
+
+    if (playedCard.kind === "wild" && !chosenColor) {
+      throw new Error("Wild card requires chosen color");
+    }
+
+    if (playedCard.kind === "wild" && playedCard.value === "wild_draw4") {
+      const activeColor =
+        currentColor ?? (topCard.kind === "wild" ? null : topCard.color);
+      if (mustDraw === 0 && activeColor) {
+        const hasColorMatch = playerHand.hand.some(
+          (card, index) =>
+            index !== cardIndex && "color" in card && card.color === activeColor,
+        );
+        if (hasColorMatch) {
+          throw new Error(
+            "Wild Draw Four can only be played when you have no matching color",
+          );
+        }
+      }
+    }
+
+    const newHand = playerHand.hand.filter((_, index) => index !== cardIndex);
+    const updatedDiscardPile = [...game.state.discardPile, playedCard];
+    const cardEffects = applyCardEffect(
+      playedCard,
+      game.state.direction,
+      mustDraw,
+    );
+    const reverseSkip =
+      playedCard.kind === "special" &&
+      playedCard.value === "reverse" &&
+      game.players.length === 2;
+    const skipNext = cardEffects.skipNext || reverseSkip;
+    const nextPlayerId = getNextPlayerId(
+      game.players,
+      currentIndex,
+      cardEffects.direction,
+      skipNext,
+    );
+    const isWinner = newHand.length === 0;
+    const now = new Date().toISOString();
+
+    t.update(gameRef(gameId), {
+      "state.discardPile": updatedDiscardPile,
+      "state.currentTurnPlayerId": isWinner ? null : nextPlayerId,
+      "state.direction": cardEffects.direction,
+      "state.mustDraw": cardEffects.mustDraw,
+      "state.currentColor": playedCard.kind === "wild" ? chosenColor : null,
+      "state.status": isWinner
+        ? GAME_STATUSES.COMPLETED
+        : GAME_STATUSES.IN_PROGRESS,
+      lastActivityAt: now,
+    });
+
+    t.update(playerHandRef(gameId, playerId), { hand: newHand });
+    t.update(playerRef(gameId, playerId), {
+      cardCount: newHand.length,
+      status: isWinner ? "winner" : "active",
+      hasCalledUno: false,
+      mustCallUno: newHand.length === 1,
+      "gameStats.cardsPlayed": player.gameStats.cardsPlayed + 1,
+      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
+      "gameStats.specialCardsPlayed":
+        player.gameStats.specialCardsPlayed +
+        (playedCard.kind === "number" ? 0 : 1),
+      lastActionAt: now,
+    });
+
+    return { winner: isWinner ? playerId : undefined };
+  });
+};
+
+export const drawCard = async (
+  gameId: string,
+  playerId: string,
+  count: number,
+): Promise<{ cards: Card[] }> => {
+  return await db.runTransaction(async (t) => {
+    const game = await getGame(gameId, t);
+
+    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
+      throw new Error(`Game ${gameId} is not in progress`);
+    }
+
+    const currentIndex = game.players.indexOf(playerId);
+    if (currentIndex < 0) {
+      throw new Error(`Player ${playerId} is not in game ${gameId}`);
+    }
+
+    if (game.state.currentTurnPlayerId !== playerId) {
+      throw new Error("Not your turn");
+    }
+
+    const player = await getGamePlayer(gameId, playerId, t);
+    const playerHand = await getPlayerHand(gameId, playerId, t);
+    const playerHands = await getPlayerHands(gameId, game.players, t);
+    const drawCount = game.state.mustDraw > 0 ? game.state.mustDraw : count;
+
+    const { drawnCards, deckSeed, drawPileCount, discardPile } =
+      drawCardsFromDeck({
+        seed: game.state.deckSeed,
+        discardPile: game.state.discardPile,
+        playerHands,
+        count: drawCount,
+      });
+
+    const newHand = [...playerHand.hand, ...drawnCards];
+    const now = new Date().toISOString();
+    const nextPlayerId = getNextPlayerId(
+      game.players,
+      currentIndex,
+      game.state.direction,
+      false,
+    );
+
+    t.update(gameRef(gameId), {
+      "state.deckSeed": deckSeed,
+      "state.drawPileCount": drawPileCount,
+      "state.discardPile": discardPile,
+      "state.currentTurnPlayerId": nextPlayerId,
+      "state.mustDraw": 0,
+      lastActivityAt: now,
+    });
+
+    t.update(playerHandRef(gameId, playerId), { hand: newHand });
+    t.update(playerRef(gameId, playerId), {
+      cardCount: newHand.length,
+      status: "active",
+      hasCalledUno: false,
+      mustCallUno: false,
+      "gameStats.cardsDrawn": player.gameStats.cardsDrawn + drawCount,
+      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
+      lastActionAt: now,
+    });
+
+    return { cards: drawnCards };
+  });
+};
+
+export const callUno = async (
+  gameId: string,
+  playerId: string,
+): Promise<{ caughtPlayerId?: string }> => {
+  return await db.runTransaction(async (t) => {
+    const game = await getGame(gameId, t);
+
+    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
+      throw new Error(`Game ${gameId} is not in progress`);
+    }
+
+    const currentIndex = game.players.indexOf(playerId);
+    if (currentIndex < 0) {
+      throw new Error(`Player ${playerId} is not in game ${gameId}`);
+    }
+
+    const player = await getGamePlayer(gameId, playerId, t);
+    const playerHand = await getPlayerHand(gameId, playerId, t);
+    const now = new Date().toISOString();
+
+    if (playerHand.hand.length === 1) {
+      t.update(playerRef(gameId, playerId), {
+        hasCalledUno: true,
+        mustCallUno: false,
+        lastActionAt: now,
+      });
+      t.update(gameRef(gameId), { lastActivityAt: now });
+      return {};
+    }
+
+    const players = await getGamePlayers(gameId, game.players, t);
+    const targetEntry = Object.entries(players).find(
+      ([id, target]) => id !== playerId && target.mustCallUno,
+    );
+
+    if (!targetEntry) {
+      throw new Error("No player to catch for UNO");
+    }
+
+    const [targetId, targetPlayer] = targetEntry;
+    const playerHands = await getPlayerHands(gameId, game.players, t);
+    const targetHand = playerHands[targetId];
+
+    if (!targetHand) {
+      throw new Error(`Player hand for ${targetId} not found in game ${gameId}`);
+    }
+
+    const { drawnCards, deckSeed, drawPileCount, discardPile } =
+      drawCardsFromDeck({
+        seed: game.state.deckSeed,
+        discardPile: game.state.discardPile,
+        playerHands,
+        count: 2,
+      });
+
+    const updatedHand = [...targetHand.hand, ...drawnCards];
+
+    t.update(gameRef(gameId), {
+      "state.deckSeed": deckSeed,
+      "state.drawPileCount": drawPileCount,
+      "state.discardPile": discardPile,
+      lastActivityAt: now,
+    });
+    t.update(playerHandRef(gameId, targetId), { hand: updatedHand });
+    t.update(playerRef(gameId, targetId), {
+      cardCount: updatedHand.length,
+      hasCalledUno: false,
+      mustCallUno: false,
+      "gameStats.cardsDrawn": targetPlayer.gameStats.cardsDrawn + 2,
+      lastActionAt: now,
+    });
+    t.update(playerRef(gameId, playerId), { lastActionAt: now });
+    return { caughtPlayerId: targetId };
   });
 };
