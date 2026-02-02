@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { signOut } from "firebase/auth";
-import { FaChevronDown, FaHome, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaBook, FaChevronDown, FaHome, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { useUser } from "../hooks/user";
@@ -39,6 +39,7 @@ const Layout = () => {
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: <FaHome size={16} /> },
+    { label: "Rules", path: "/rules", icon: <FaBook size={16} /> },
     { label: "Profile", path: "/profile", icon: <FaUser size={16} /> },
   ];
 

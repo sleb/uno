@@ -7,6 +7,7 @@ import Layout from "./components/layout";
 import LoginPage from "./components/login/login-page";
 import ProfileRequired from "./components/profile-required";
 import ProfilePage from "./components/profile/profile-page";
+import RulesPage from "./components/rules/rules-page";
 
 export const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "login", element: <LoginPage /> },
+      { path: "rules", element: <RulesPage /> },
       {
         element: <AuthRequired />,
         children: [
