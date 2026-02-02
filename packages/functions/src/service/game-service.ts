@@ -4,12 +4,15 @@ import {
   GAME_STATUSES,
   type GameData,
   GameDataSchema,
+  type GameFinalScores,
   type GamePlayerData,
   GamePlayerDataSchema,
   type PlayerHandData,
   PlayerHandDataSchema,
+  type PlayerScore,
   type UserData,
   UserDataSchema,
+  type UserStats,
 } from "@uno/shared";
 import type {
   DocumentReference,
@@ -23,6 +26,7 @@ import {
   isCardPlayable,
 } from "./card-validation";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
+import { calculateHandScore } from "./score-utils";
 
 const DECK_SIZE = 108;
 
@@ -255,9 +259,9 @@ const drawCardsFromDeck = ({
     availableDeck = buildAvailableDeck(deckSeed, usedCards);
   }
 
-    if (availableDeck.length < count) {
-      throw new Error("Not enough cards in deck to draw");
-    }
+  if (availableDeck.length < count) {
+    throw new Error("Not enough cards in deck to draw");
+  }
 
   const drawnCards: Card[] = [];
   const remainingDeck = [...availableDeck];
@@ -459,6 +463,155 @@ export const startGame = async (gameId: string): Promise<void> => {
   });
 };
 
+/**
+ * Finalizes a game when a winner is detected.
+ * Calculates scores, updates player statistics, and creates final scores record.
+ *
+ * This function MUST be called within an existing transaction to ensure atomicity.
+ *
+ * @param gameId - The ID of the game to finalize
+ * @param winnerId - The ID of the winning player
+ * @param t - Firestore transaction (required for atomicity)
+ */
+export const finalizeGame = async (
+  gameId: string,
+  winnerId: string,
+  t: Transaction,
+): Promise<void> => {
+  const now = new Date().toISOString();
+
+  // 1. Get all player data (both hands and player docs)
+  const game = await getGame(gameId, t);
+  const playerIds = game.players;
+
+  // Fetch all player hands and player docs
+  const playerHands = await getPlayerHands(gameId, playerIds, t);
+  const gamePlayers: Record<string, GamePlayerData> = {};
+
+  for (const playerId of playerIds) {
+    gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);
+  }
+
+  // 2. Calculate scores for each player
+  const playerScores: PlayerScore[] = [];
+  let winnerTotalScore = 0;
+
+  for (const playerId of playerIds) {
+    const hand = playerHands[playerId];
+    const cardCount = hand.hand.length;
+    const handScore = calculateHandScore(hand.hand);
+
+    if (playerId === winnerId) {
+      // Winner has 0 cards, initialize their score entry
+      playerScores.push({
+        playerId,
+        displayName: gamePlayers[playerId].displayName,
+        score: 0, // We'll update this after calculating total
+        cardCount,
+        rank: 1,
+      });
+    } else {
+      // Add this opponent's cards to winner's total score
+      winnerTotalScore += handScore;
+
+      playerScores.push({
+        playerId,
+        displayName: gamePlayers[playerId].displayName,
+        score: 0, // Opponents don't score points
+        cardCount,
+        rank: 0, // We'll assign ranks after sorting
+      });
+    }
+  }
+
+  // Update winner's score with total points earned
+  const winnerScoreIndex = playerScores.findIndex(
+    (p) => p.playerId === winnerId,
+  );
+  playerScores[winnerScoreIndex].score = winnerTotalScore;
+
+  // 3. Sort players by rank (winner first, then by cards remaining ascending)
+  playerScores.sort((a, b) => {
+    if (a.playerId === winnerId) return -1;
+    if (b.playerId === winnerId) return 1;
+    return a.cardCount - b.cardCount; // Fewer cards = better rank
+  });
+
+  // Assign ranks (2nd, 3rd, 4th, etc.)
+  for (let i = 0; i < playerScores.length; i++) {
+    if (playerScores[i].playerId !== winnerId) {
+      playerScores[i].rank = i + 1;
+    }
+  }
+
+  // 4. Create final scores object
+  const finalScores: GameFinalScores = {
+    winnerId,
+    winnerScore: winnerTotalScore,
+    completedAt: now,
+    playerScores,
+  };
+
+  // 5. Update game document with final scores
+  t.update(gameRef(gameId), {
+    finalScores,
+  });
+
+  // 6. Update user statistics for all players
+  for (const playerId of playerIds) {
+    const userSnap = await getDoc(userRef(playerId), t);
+    if (!userSnap.exists) continue; // Skip if user doesn't exist
+
+    const userData = UserDataSchema.parse(userSnap.data());
+    const currentStats = userData.stats ?? {
+      gamesPlayed: 0,
+      gamesWon: 0,
+      gamesLost: 0,
+      totalScore: 0,
+      highestGameScore: 0,
+      winRate: 0,
+      cardsPlayed: 0,
+      specialCardsPlayed: 0,
+    };
+
+    const gamePlayer = gamePlayers[playerId];
+    const isWinner = playerId === winnerId;
+
+    // Calculate new stats
+    const newGamesPlayed = currentStats.gamesPlayed + 1;
+    const newGamesWon = currentStats.gamesWon + (isWinner ? 1 : 0);
+    const newGamesLost = currentStats.gamesLost + (isWinner ? 0 : 1);
+    const newTotalScore =
+      currentStats.totalScore + (isWinner ? winnerTotalScore : 0);
+    const newHighestGameScore = isWinner
+      ? Math.max(currentStats.highestGameScore, winnerTotalScore)
+      : currentStats.highestGameScore;
+    const newWinRate = newGamesWon / newGamesPlayed;
+
+    // Add game stats to lifetime stats
+    const newCardsPlayed =
+      currentStats.cardsPlayed + gamePlayer.gameStats.cardsPlayed;
+    const newSpecialCardsPlayed =
+      currentStats.specialCardsPlayed + gamePlayer.gameStats.specialCardsPlayed;
+
+    const updatedStats: UserStats = {
+      gamesPlayed: newGamesPlayed,
+      gamesWon: newGamesWon,
+      gamesLost: newGamesLost,
+      totalScore: newTotalScore,
+      highestGameScore: newHighestGameScore,
+      winRate: newWinRate,
+      cardsPlayed: newCardsPlayed,
+      specialCardsPlayed: newSpecialCardsPlayed,
+    };
+
+    // Update user document
+    t.update(userRef(playerId), {
+      stats: updatedStats,
+    });
+  }
+};
+
 export const playCard = async (
   gameId: string,
   playerId: string,
@@ -481,7 +634,8 @@ export const playCard = async (
       throw new Error("Not your turn");
     }
 
-        const playerHand = await getPlayerHand(gameId, playerId, t);
+    const playerHand = await getPlayerHand(gameId, playerId, t);
+    const player = await getGamePlayer(gameId, playerId, t);
     const playedCard = playerHand.hand[cardIndex];
 
     if (!playedCard) {
@@ -505,7 +659,9 @@ export const playCard = async (
       if (mustDraw === 0 && activeColor) {
         const hasColorMatch = playerHand.hand.some(
           (card, index) =>
-            index !== cardIndex && "color" in card && card.color === activeColor,
+            index !== cardIndex &&
+            "color" in card &&
+            card.color === activeColor,
         );
         if (hasColorMatch) {
           throw new Error(
@@ -561,6 +717,11 @@ export const playCard = async (
         (playedCard.kind === "number" ? 0 : 1),
       lastActionAt: now,
     });
+
+    // Finalize game if there's a winner (calculate scores, update stats)
+    if (isWinner) {
+      await finalizeGame(gameId, playerId, t);
+    }
 
     return { winner: isWinner ? playerId : undefined };
   });
@@ -674,7 +835,9 @@ export const callUno = async (
     const targetHand = playerHands[targetId];
 
     if (!targetHand) {
-      throw new Error(`Player hand for ${targetId} not found in game ${gameId}`);
+      throw new Error(
+        `Player hand for ${targetId} not found in game ${gameId}`,
+      );
     }
 
     const { drawnCards, deckSeed, drawPileCount, discardPile } =

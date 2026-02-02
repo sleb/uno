@@ -13,9 +13,41 @@ export const PLAYER_STATUSES = {
   FORFEITED: "forfeited",
 } as const;
 
+// User Statistics Schema - tracks career stats
+export const UserStatsSchema = z.object({
+  gamesPlayed: z.number().default(0),
+  gamesWon: z.number().default(0),
+  gamesLost: z.number().default(0),
+  totalScore: z.number().default(0),
+  highestGameScore: z.number().default(0),
+  winRate: z.number().default(0),
+  cardsPlayed: z.number().default(0),
+  specialCardsPlayed: z.number().default(0),
+});
+
+// Player Score in final results
+export const PlayerScoreSchema = z.object({
+  playerId: z.string(),
+  displayName: z.string(),
+  score: z.number(),
+  cardCount: z.number(),
+  rank: z.number(),
+});
+
+// Game Final Scores - calculated when game completes
+export const GameFinalScoresSchema = z.object({
+  winnerId: z.string(),
+  winnerScore: z.number(),
+  completedAt: z.string(), // ISO datetime
+  playerScores: z.array(PlayerScoreSchema),
+});
+
+
+
 export const UserDataSchema = z.object({
   displayName: z.string(),
   avatar: z.string(),
+  stats: UserStatsSchema.optional(),
 });
 
 export const UserSchema = UserDataSchema.extend({
@@ -72,6 +104,7 @@ export const GameDataSchema = z.object({
     currentColor: ColorSchema.nullable().default(null),
     mustDraw: z.number().min(0).default(0),
   }),
+  finalScores: GameFinalScoresSchema.optional(),
 });
 
 export const PlayerDataSchema = z.object({
@@ -185,3 +218,6 @@ export type DrawCardResponse = z.infer<typeof DrawCardResponseSchema>;
 export type CallUnoRequest = z.infer<typeof CallUnoRequestSchema>;
 export type CallUnoResponse = z.infer<typeof CallUnoResponseSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;
+export type UserStats = z.infer<typeof UserStatsSchema>;
+export type PlayerScore = z.infer<typeof PlayerScoreSchema>;
+export type GameFinalScores = z.infer<typeof GameFinalScoresSchema>;
