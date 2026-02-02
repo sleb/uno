@@ -3,9 +3,10 @@
 ## Current Status
 
 **MVP Game Setup: ✅ Complete**  
-**Core Gameplay: 🚧 In Progress (Scaffolding complete)**
+**Core Gameplay: ✅ Complete**  
+**Game Completion: 🚧 In Progress**
 
-Players can create, join, and start games. Gameplay schemas, validation helpers, and state fields are in place, but players cannot yet play cards, draw cards, or finish games. Core gameplay functions remain the primary blocker.
+Players can create, join, and start games. **All core gameplay is now functional** - players can play cards, draw cards, call UNO, and finish games. The game enforces turn order, validates card plays, handles special cards (Skip, Reverse, Draw Two, Wild cards), manages deck exhaustion with reshuffling, and declares winners. Frontend UI is fully wired with interactive gameplay.
 
 ---
 
@@ -17,6 +18,9 @@ Players can create, join, and start games. Gameplay schemas, validation helpers,
 - `createGame` - Create new games with configuration (private/public, max players, house rules)
 - `joinGame` - Join existing games  
 - `startGame` - Start game when all players are ready
+- `playCard` - Validate and execute card plays with full rules enforcement
+- `drawCard` - Draw cards from deck with reshuffle support
+- `callUno` - Handle UNO declarations and penalties
 
 **Pages & Routes:**
 - `/` - Home page with welcome and login/signup
@@ -28,91 +32,95 @@ Players can create, join, and start games. Gameplay schemas, validation helpers,
 **Infrastructure:**
 - Deck generation with deterministic seed-based shuffling
 - Initial hand dealing (7 cards per player)
-- Game state management (waiting → in-progress transitions)
+- Game state management (waiting → in-progress → completed transitions)
 - Real-time Firestore listeners for game updates
 - Player data management (profiles, avatars, card counts)
 - Turn tracking and direction (clockwise/counter-clockwise)
 - Firestore security rules for private player hands
 - Gameplay schemas and validation helpers
-- Initial gameplay state fields (currentColor, mustDraw, mustCallUno)
+- Complete gameplay state management (currentColor, mustDraw, mustCallUno)
+- Card validation logic with comprehensive tests (17 passing tests)
+- Deck management with exhaustion and reshuffle
+- Winner determination
 
 ---
 
 ## Roadmap Phases
 
-### 🔴 **Phase 1: Core Gameplay** (Critical Priority)
+### ✅ **Phase 1: Core Gameplay** (COMPLETE)
 
 **Goal:** Enable players to actually play a complete game of Uno.
 
 **Cloud Functions:**
-- [ ] `playCard(gameId, cardIndex, selectedColor?)` - Validate and execute card plays
-  - Validate auth and turn order
-  - Check card playability (color, number, or symbol match)
-  - Handle special cards (Skip, Reverse, Draw Two)
-  - Handle wild cards with color selection
-  - Update game state, discard pile, and player hand atomically
-  - Advance turn to next player
-  - Check win condition (cardCount === 0)
-- [ ] `drawCard(gameId)` - Draw cards from deck
-  - Validate auth and turn order
-  - Compute available cards (108 - discard - all hands)
-  - Use deckSeed for deterministic shuffle
-  - Handle deck exhaustion (reshuffle discard pile, new seed)
-  - Update player hand and cardCount
-  - Option to play drawn card if playable
-- [ ] `callUno()` - Handle UNO declarations
-  - Validate player has exactly 1 card
-  - Set `hasCalledUno` flag
-  - Implement penalty for not calling UNO (draw 2 cards)
+- [x] `playCard(gameId, cardIndex, selectedColor?)` - Validate and execute card plays
+  - [x] Validate auth and turn order
+  - [x] Check card playability (color, number, or symbol match)
+  - [x] Handle special cards (Skip, Reverse, Draw Two)
+  - [x] Handle wild cards with color selection
+  - [x] Update game state, discard pile, and player hand atomically
+  - [x] Advance turn to next player
+  - [x] Check win condition (cardCount === 0)
+- [x] `drawCard(gameId)` - Draw cards from deck
+  - [x] Validate auth and turn order
+  - [x] Compute available cards (108 - discard - all hands)
+  - [x] Use deckSeed for deterministic shuffle
+  - [x] Handle deck exhaustion (reshuffle discard pile, new seed)
+  - [x] Update player hand and cardCount
+  - [x] Option to play drawn card if playable
+- [x] `callUno()` - Handle UNO declarations
+  - [x] Validate player has exactly 1 card
+  - [x] Set `hasCalledUno` flag
+  - [x] Implement penalty for not calling UNO (draw 2 cards)
 
 **Game Logic & Validation:**
-- [ ] Card playability rules
-  - Match by color, number, or symbol
-  - Wild cards playable anytime
-  - Wild Draw Four restrictions (only when no color match)
-- [ ] Special card effects
-  - Skip: Next player loses turn
-  - Reverse: Change direction
-  - Draw Two: Next player draws 2 and loses turn
-  - Wild Draw Four: Next player draws 4 and loses turn
-- [ ] Deck management
-  - Reshuffle discard pile when draw pile exhausted
-  - Keep top card of discard pile active
-  - Generate new deckSeed on reshuffle
-- [ ] Turn advancement logic
-  - Normal: currentTurnPlayerId = next player
-  - Skip: currentTurnPlayerId = player after next
-  - Reverse: change direction, then advance
+- [x] Card playability rules
+  - [x] Match by color, number, or symbol
+  - [x] Wild cards playable anytime
+  - [x] Wild Draw Four restrictions (only when no color match)
+- [x] Special card effects
+  - [x] Skip: Next player loses turn
+  - [x] Reverse: Change direction
+  - [x] Draw Two: Next player draws 2 and loses turn
+  - [x] Wild Draw Four: Next player draws 4 and loses turn
+- [x] Deck management
+  - [x] Reshuffle discard pile when draw pile exhausted
+  - [x] Keep top card of discard pile active
+  - [x] Generate new deckSeed on reshuffle
+- [x] Turn advancement logic
+  - [x] Normal: currentTurnPlayerId = next player
+  - [x] Skip: currentTurnPlayerId = player after next
+  - [x] Reverse: change direction, then advance
 
 **Frontend Gameplay UI:**
-- [ ] Wire up playCard/drawCard/callUno handlers to game board
-- [ ] Card selection interaction (click or drag-to-play)
-- [ ] Wild card color picker modal
-- [ ] Visual indicators for:
-  - Current turn (highlight active player)
-  - Playable cards (highlight in hand)
-  - Required actions (must draw, must call UNO)
-- [ ] "UNO" button with penalty enforcement
-- [ ] Disabled state for actions when not player's turn
+- [x] Wire up playCard/drawCard/callUno handlers to game board
+- [x] Card selection interaction (click or drag-to-play)
+- [x] Wild card color picker modal
+- [x] Visual indicators for:
+  - [x] Current turn (highlight active player)
+  - [x] Playable cards (highlight in hand)
+  - [x] Required actions (must draw, must call UNO)
+- [x] "UNO" button with penalty enforcement
+- [x] Disabled state for actions when not player's turn
 
 **Testing:**
+- [x] Unit tests for card validation logic (17 passing tests)
+- [x] Unit tests for deck management (shuffling, exhaustion, reshuffle)
 - [ ] Integration tests for game flow (create → join → start → play → win)
-- [ ] Unit tests for card validation logic
-- [ ] Unit tests for deck management (shuffling, exhaustion, reshuffle)
 - [ ] Frontend tests for gameplay interactions
 
 ---
 
-### 🟡 **Phase 2: Game Completion** (High Priority)
+### 🔴 **Phase 2: Game Completion** (Critical Priority - Current Focus)
 
 **Goal:** Handle game endings, track statistics, and improve player experience.
 
 **Game Completion:**
-- [ ] Winner determination (first player to cardCount === 0)
-- [ ] Game state transition to 'completed'
-- [ ] Winner celebration UI
+- [x] Winner determination (first player to cardCount === 0)
+- [x] Game state transition to 'completed'
+- [ ] Winner celebration UI (basic notification exists, needs enhancement)
 - [ ] Final scores calculation (per official UNO rules)
 - [ ] Option to play another round or return to dashboard
+- [ ] Clean up completed games from dashboard "Your Games" view
 
 **Player Statistics:**
 - [ ] Track wins/losses in `/users/{userId}` document
@@ -297,11 +305,17 @@ These ideas are not currently planned but could be considered in the future:
 
 ## Next Steps
 
-**Immediate Priority:** Implement **Phase 1: Core Gameplay**. Start with `playCard` Cloud Function and card validation logic, as this is the foundation for all gameplay.
+**Immediate Priority:** Complete **Phase 2: Game Completion**. Focus on:
+1. Enhanced winner celebration UI (confetti, animations, player rankings)
+2. Final scores calculation following official UNO rules
+3. Post-game options (play again, return to dashboard)
+4. Player statistics tracking (wins, games played)
 
 **Quick Wins:**
 - Build `/rules` page (simple content display from GAME_RULES.md)
 - Implement forfeit/leave game functionality
+- Filter completed games from dashboard view
+- Add game history page to profile
 
 **For Questions/Planning:**
 - Refer to [DESIGN.md](DESIGN.md) for architecture details
@@ -310,4 +324,4 @@ These ideas are not currently planned but could be considered in the future:
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-02
