@@ -5,3 +5,5 @@ dist/
 .firebase/hosting.cGFja2FnZXMvd2ViL2Rpc3Q.cache
 *.backup
 *.bak*
+playwright-report/
+test-results/
