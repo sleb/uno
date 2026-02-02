@@ -552,17 +552,25 @@ export const finalizeGame = async (
     playerScores,
   };
 
-  // 5. Update game document with final scores
+  // 5. Read all user documents BEFORE any writes (required by Firestore transactions)
+  const userDataMap: Record<string, UserData> = {};
+  for (const playerId of playerIds) {
+    const userSnap = await getDoc(userRef(playerId), t);
+    if (userSnap.exists) {
+      userDataMap[playerId] = UserDataSchema.parse(userSnap.data());
+    }
+  }
+
+  // 6. Update game document with final scores
   t.update(gameRef(gameId), {
     finalScores,
   });
 
-  // 6. Update user statistics for all players
+  // 7. Update user statistics for all players
   for (const playerId of playerIds) {
-    const userSnap = await getDoc(userRef(playerId), t);
-    if (!userSnap.exists) continue; // Skip if user doesn't exist
+    const userData = userDataMap[playerId];
+    if (!userData) continue; // Skip if user doesn't exist
 
-    const userData = UserDataSchema.parse(userSnap.data());
     const currentStats = userData.stats ?? {
       gamesPlayed: 0,
       gamesWon: 0,
