@@ -105,6 +105,34 @@ Structure (from [DESIGN.md](DESIGN.md)):
 - **Debug locally**: Set `NODE_ENV=development`, start Firebase emulators (`firebase emulators:start` on ports 9099/8080/5001), run `bun dev` in `packages/web`.
 - **Add tests**: Create `*.test.ts` file next to code, import from `bun:test`, use `describe`, `test`, `expect`. Run with `bun test` or `bun test --watch`.
 
+## Custom Agents
+
+**IMPORTANT:** This project has specialized custom agents configured in Copilot. **Always prefer using these agents over doing work yourself** when the user's request matches the agent's purpose.
+
+### When to Delegate to Custom Agents
+
+**`feature-architect` agent** - Use when user asks to design or plan features:
+- Trigger phrases: "design a feature", "create a plan for", "how should I implement", "architect this"
+- Examples: "Design a scoring system", "Create a plan for Phase 2", "How should I implement notifications?"
+- **This agent analyzes the codebase, proposes architecture, explains design rationale, and identifies refactoring opportunities**
+
+**`clean-code-engineer` agent** - Use when user asks to implement features or write code:
+- Trigger phrases: "implement this feature", "build this functionality", "write code for", "refactor this", "add this to the codebase"
+- Examples: "Implement the scoring system", "Build a leaderboard", "Refactor the game service"
+- **This agent implements features with modern best practices and clean code principles**
+
+**`smart-committer` agent** - Use when user asks to commit changes:
+- Trigger phrases: "commit my changes", "create a commit", "make a commit", "time to commit"
+- Examples: "Commit my changes", "Prepare commits for this work"
+- **This agent analyzes diffs, proposes logical commit groupings, and writes conventional commit messages**
+
+### Agent Usage Guidelines
+
+1. **Check for matching agents FIRST** before doing work yourself
+2. If a custom agent exists for the task, delegate to it - these agents have specialized knowledge for this project
+3. Only do work yourself if no custom agent matches the request
+4. Custom agents run in separate context windows - they keep your main conversation clean
+
 ## Conventions
 
 - **Validation**: Always use Zod schemas for all data validation; parse early (at Firestore read/API call boundaries). Never trust raw Firestore data.
