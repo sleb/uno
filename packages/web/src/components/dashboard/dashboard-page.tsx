@@ -117,11 +117,8 @@ const DashboardPage = () => {
           <>
             <GameSearch onSearchChange={setSearchQuery} />
 
-            {/* Games List */}
-            <Stack gap="md">
-              <Title order={2}>Your Games</Title>
-              <YourGamesTable searchQuery={searchQuery} />
-            </Stack>
+            {/* Games List - Title is now part of YourGamesTable component */}
+            <YourGamesTable searchQuery={searchQuery} />
           </>
         )}
       </Stack>

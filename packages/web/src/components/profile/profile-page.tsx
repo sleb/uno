@@ -1,10 +1,12 @@
-import { Card, Center, Stack, Text, Title } from "@mantine/core";
+import { Card, Center, Divider, Stack, Text, Title } from "@mantine/core";
 import { useUser } from "../../hooks/user";
 import EditableAvatar from "./editable-avatar";
 import EditableDisplayName from "./editable-display-name";
+import ProfileStats from "./profile-stats";
 
 const ProfilePage = () => {
-  const { displayName, avatar, id } = useUser();
+  const user = useUser();
+  const { displayName, avatar, id } = user;
 
   return (
     <Stack gap="xl" py="xl">
@@ -30,6 +32,12 @@ const ProfilePage = () => {
           </Stack>
         </Card>
       </Center>
+
+      {/* Divider */}
+      <Divider my="lg" />
+
+      {/* Statistics Section */}
+      <ProfileStats user={user} />
     </Stack>
   );
 };
