@@ -8,10 +8,13 @@ import {
     Group,
     Loader,
     Stack,
+    Switch,
     Table,
     Text,
+    Title,
     Tooltip,
 } from "@mantine/core";
+import { useState } from "react";
 import { FaEye, FaGamepad, FaSearch, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useUserGames } from "../../hooks/user-games";
@@ -24,17 +27,27 @@ interface YourGamesTableProps {
 const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
   const { games, loading } = useUserGames();
   const navigate = useNavigate();
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  // Filter games based on search query
-  const filteredGames = games.filter((game) => {
-    if (!searchQuery.trim()) return true;
+  // Filter games based on completion status and search query
+  const filteredGames = games
+    .filter((game) => {
+      // Filter by completion status
+      if (!showCompleted && game.state.status === "completed") {
+        return false;
+      }
+      return true;
+    })
+    .filter((game) => {
+      // Filter by search query
+      if (!searchQuery.trim()) return true;
 
-    const query = searchQuery.toLowerCase().trim();
-    return (
-      game.id.toLowerCase().includes(query) ||
-      game.state.status.toLowerCase().includes(query)
-    );
-  });
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        game.id.toLowerCase().includes(query) ||
+        game.state.status.toLowerCase().includes(query)
+      );
+    });
 
   if (loading) {
     return (
@@ -46,7 +59,7 @@ const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
     );
   }
 
-  if (filteredGames.length === 0 && !searchQuery) {
+  if (games.length === 0) {
     return (
       <Card>
         <Center py="xl">
@@ -107,24 +120,71 @@ const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
 
   if (filteredGames.length === 0 && searchQuery) {
     return (
-      <Card>
-        <Center py="xl">
-          <Stack gap="md" align="center">
-            <FaSearch size={60} color={UNO_ICON_COLOR} opacity={0.3} />
-            <Text c="dimmed" ta="center">
-              No games match "{searchQuery}"
-            </Text>
-            <Text size="sm" c="dimmed" ta="center">
-              Try a different search term or game code
-            </Text>
-          </Stack>
-        </Center>
-      </Card>
+      <Stack gap="md">
+        <Group justify="space-between">
+          <Title order={2}>Your Games</Title>
+          <Switch
+            label="Show completed"
+            checked={showCompleted}
+            onChange={(e) => setShowCompleted(e.currentTarget.checked)}
+          />
+        </Group>
+        <Card>
+          <Center py="xl">
+            <Stack gap="md" align="center">
+              <FaSearch size={60} color={UNO_ICON_COLOR} opacity={0.3} />
+              <Text c="dimmed" ta="center">
+                No games match "{searchQuery}"
+              </Text>
+              <Text size="sm" c="dimmed" ta="center">
+                Try a different search term or game code
+              </Text>
+            </Stack>
+          </Center>
+        </Card>
+      </Stack>
+    );
+  }
+
+  if (filteredGames.length === 0 && !showCompleted) {
+    return (
+      <Stack gap="md">
+        <Group justify="space-between">
+          <Title order={2}>Your Games</Title>
+          <Switch
+            label="Show completed"
+            checked={showCompleted}
+            onChange={(e) => setShowCompleted(e.currentTarget.checked)}
+          />
+        </Group>
+        <Card>
+          <Center py="xl">
+            <Stack gap="md" align="center">
+              <FaGamepad size={60} color={UNO_ICON_COLOR} opacity={0.3} />
+              <Text c="dimmed" ta="center">
+                No active games
+              </Text>
+              <Text size="sm" c="dimmed" ta="center">
+                All your games are completed. Toggle "Show completed" to see them.
+              </Text>
+            </Stack>
+          </Center>
+        </Card>
+      </Stack>
     );
   }
 
   return (
-    <>
+    <Stack gap="md">
+      <Group justify="space-between">
+        <Title order={2}>Your Games</Title>
+        <Switch
+          label="Show completed"
+          checked={showCompleted}
+          onChange={(e) => setShowCompleted(e.currentTarget.checked)}
+        />
+      </Group>
+
       {/* Mobile Card View */}
       <Box hiddenFrom="sm">
         <Stack gap="md">
@@ -220,7 +280,7 @@ const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
           </Table>
         </Stack>
       </Card>
-    </>
+    </Stack>
   );
 };
 
