@@ -1,18 +1,18 @@
 import {
-    ActionIcon,
-    Badge,
-    Box,
-    Button,
-    Card,
-    Center,
-    Group,
-    Loader,
-    Stack,
-    Switch,
-    Table,
-    Text,
-    Title,
-    Tooltip,
+  ActionIcon,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Center,
+  Group,
+  Loader,
+  Stack,
+  Switch,
+  Table,
+  Text,
+  Title,
+  Tooltip,
 } from "@mantine/core";
 import { useState } from "react";
 import { FaEye, FaGamepad, FaSearch, FaUsers } from "react-icons/fa";
@@ -165,7 +165,8 @@ const YourGamesTable = ({ searchQuery = "" }: YourGamesTableProps) => {
                 No active games
               </Text>
               <Text size="sm" c="dimmed" ta="center">
-                All your games are completed. Toggle "Show completed" to see them.
+                All your games are completed. Toggle "Show completed" to see
+                them.
               </Text>
             </Stack>
           </Center>

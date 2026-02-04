@@ -6,8 +6,10 @@ import {
   isCardPlayable,
 } from "./card-validation";
 
-const numberCard = (color: "red" | "yellow" | "green" | "blue", value: number) =>
-  CardSchema.parse({ kind: "number", color, value });
+const numberCard = (
+  color: "red" | "yellow" | "green" | "blue",
+  value: number,
+) => CardSchema.parse({ kind: "number", color, value });
 
 const specialCard = (
   color: "red" | "yellow" | "green" | "blue",
@@ -78,23 +80,23 @@ describe("getNextPlayerId", () => {
 
 describe("applyCardEffect", () => {
   test("adds draw penalties", () => {
-    expect(applyCardEffect(specialCard("red", "draw2"), "clockwise", 0)).toEqual(
-      {
-        direction: "clockwise",
-        mustDraw: 2,
-        skipNext: false,
-      },
-    );
+    expect(
+      applyCardEffect(specialCard("red", "draw2"), "clockwise", 0),
+    ).toEqual({
+      direction: "clockwise",
+      mustDraw: 2,
+      skipNext: false,
+    });
   });
 
   test("reverses direction", () => {
-    expect(applyCardEffect(specialCard("red", "reverse"), "clockwise", 0)).toEqual(
-      {
-        direction: "counter-clockwise",
-        mustDraw: 0,
-        skipNext: false,
-      },
-    );
+    expect(
+      applyCardEffect(specialCard("red", "reverse"), "clockwise", 0),
+    ).toEqual({
+      direction: "counter-clockwise",
+      mustDraw: 0,
+      skipNext: false,
+    });
   });
 
   test("marks skip cards", () => {

@@ -7,6 +7,7 @@ A Bun-based monorepo for **Uno**, an asynchronous multiplayer card game using Fi
 - **[DESIGN.md](DESIGN.md)** - Architecture and data model design
 - **[GAME_RULES.md](GAME_RULES.md)** - Official UNO rules and house rules variants
 - **[ROADMAP.md](ROADMAP.md)** - Project roadmap, implementation status, and planned features
+- **[E2E_TESTS.md](E2E_TESTS.md)** - End-to-end testing guide with Playwright
 - **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guide for AI assistants
 
 ## Project Structure
@@ -71,6 +72,64 @@ bun start  # serves dist/
 cd packages/functions
 bun build src/index.ts --outdir dist --target node --format cjs --external firebase-admin --external firebase-functions
 ```
+
+## Testing
+
+### E2E Tests
+
+The project includes comprehensive end-to-end tests for two-player gameplay using Playwright and Firebase Auth emulator.
+
+**Prerequisites:**
+
+- Playwright browsers installed: `bunx playwright install`
+- Pre-configured test users in `.emulator` directory
+
+**Running E2E Tests:**
+
+```bash
+# Verify test users are configured
+bun run verify:emulator-users
+
+# Run all e2e tests (starts emulators automatically)
+bun run test:e2e
+
+# Run with UI mode for interactive debugging
+bun run test:e2e:ui
+```
+
+**Test Coverage:**
+
+- ✅ User authentication via Firebase Auth emulator
+- ✅ Game creation, joining, and starting
+- ✅ Initial card dealing (7 cards per player)
+- ✅ Turn-based card playing and drawing
+- ✅ Real-time synchronization across multiple clients
+- ✅ Turn enforcement (non-turn player cannot play)
+- ✅ Discard pile updates
+
+See [E2E_TESTS.md](E2E_TESTS.md) for detailed documentation.
+
+**Test Users:**
+
+- `user.one@example.com` (User One)
+- `user.two@example.com` (User Two)
+
+These accounts are pre-configured in the `.emulator` directory and automatically loaded when tests run.
+
+### Unit Tests
+
+```bash
+# Run all unit tests
+bun test
+
+# Run specific test file
+bun test packages/functions/src/service/game-service.test.ts
+
+# Watch mode
+bun test --watch
+```
+
+Tests use Bun's built-in test runner (no Jest or Vitest required).
 
 ## Architecture
 

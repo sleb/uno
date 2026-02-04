@@ -1,5 +1,5 @@
-import { PlayCardRequestSchema, type PlayCardRequest } from "@uno/shared";
-import { HttpsError, type CallableRequest } from "firebase-functions/https";
+import { type PlayCardRequest, PlayCardRequestSchema } from "@uno/shared";
+import { type CallableRequest, HttpsError } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import { playCard as _playCard } from "./service/game-service";
 
@@ -41,9 +41,6 @@ export const playCard = async (
       }
     }
 
-    throw new HttpsError(
-      "internal",
-      "An error occurred while playing a card.",
-    );
+    throw new HttpsError("internal", "An error occurred while playing a card.");
   }
 };

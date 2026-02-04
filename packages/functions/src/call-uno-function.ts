@@ -3,7 +3,7 @@ import {
   CallUnoRequestSchema,
   type CallUnoResponse,
 } from "@uno/shared";
-import { HttpsError, type CallableRequest } from "firebase-functions/https";
+import { type CallableRequest, HttpsError } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import { callUno as _callUno } from "./service/game-service";
 

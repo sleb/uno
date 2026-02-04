@@ -5,8 +5,8 @@ import GamePage from "./components/game/game-page";
 import HomePage from "./components/home/home-page";
 import Layout from "./components/layout";
 import LoginPage from "./components/login/login-page";
-import ProfileRequired from "./components/profile-required";
 import ProfilePage from "./components/profile/profile-page";
+import ProfileRequired from "./components/profile-required";
 import RulesPage from "./components/rules/rules-page";
 
 export const router = createBrowserRouter([

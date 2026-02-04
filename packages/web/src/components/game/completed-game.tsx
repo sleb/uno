@@ -60,7 +60,10 @@ const CompletedGame = ({ game, currentUserId }: CompletedGameProps) => {
       {/* Confetti overlay */}
       {showConfetti && (
         <div className="confetti-container">
-          {Array.from({ length: 50 }, (_, i) => `confetti-${i}-${Math.random()}`).map((key) => (
+          {Array.from(
+            { length: 50 },
+            (_, i) => `confetti-${i}-${Math.random()}`,
+          ).map((key) => (
             <div
               key={key}
               className="confetti"

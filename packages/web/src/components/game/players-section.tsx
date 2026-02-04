@@ -1,13 +1,13 @@
 import {
-    Avatar,
-    Badge,
-    Box,
-    Card,
-    Divider,
-    Group,
-    Paper,
-    Stack,
-    Text,
+  Avatar,
+  Badge,
+  Box,
+  Card,
+  Divider,
+  Group,
+  Paper,
+  Stack,
+  Text,
 } from "@mantine/core";
 import type { Game, GamePlayer } from "@uno/shared";
 import { useEffect, useState } from "react";

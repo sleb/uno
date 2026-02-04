@@ -51,10 +51,10 @@ describe("calculateHandScore", () => {
 
   test("calculates total for mixed hand", () => {
     const hand: Card[] = [
-      { kind: "number", color: "red", value: 5 },     // 5
-      { kind: "number", color: "blue", value: 3 },    // 3
+      { kind: "number", color: "red", value: 5 }, // 5
+      { kind: "number", color: "blue", value: 3 }, // 3
       { kind: "special", color: "green", value: "skip" }, // 20
-      { kind: "wild", value: "wild" },                // 50
+      { kind: "wild", value: "wild" }, // 50
     ];
 
     expect(calculateHandScore(hand)).toBe(78);
@@ -91,9 +91,7 @@ describe("calculateHandScore", () => {
   });
 
   test("single card hand", () => {
-    const hand: Card[] = [
-      { kind: "number", color: "red", value: 7 },
-    ];
+    const hand: Card[] = [{ kind: "number", color: "red", value: 7 }];
 
     expect(calculateHandScore(hand)).toBe(7);
   });

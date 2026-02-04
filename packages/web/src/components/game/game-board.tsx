@@ -14,7 +14,13 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import type { Card as UnoCard, Color, Game, GamePlayer, PlayerHand } from "@uno/shared";
+import type {
+  Color,
+  Game,
+  GamePlayer,
+  PlayerHand,
+  Card as UnoCard,
+} from "@uno/shared";
 import { useEffect, useMemo, useState } from "react";
 import { FaArrowRight, FaHandPaper, FaRedo, FaUndo } from "react-icons/fa";
 import {
@@ -40,7 +46,9 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
 
   useEffect(() => {
     return onGamePlayersUpdate(game.id, (updatedPlayers) => {
-      const playerMap = new Map(updatedPlayers.map((player) => [player.id, player]));
+      const playerMap = new Map(
+        updatedPlayers.map((player) => [player.id, player]),
+      );
       const sortedPlayers = game.players
         .map((playerId) => playerMap.get(playerId))
         .filter((player): player is GamePlayer => player !== undefined);
@@ -53,7 +61,9 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   }, [game.id, currentUserId]);
 
   const isMyTurn = game.state.currentTurnPlayerId === currentUserId;
-  const currentPlayer = players.find((p) => p.id === game.state.currentTurnPlayerId);
+  const currentPlayer = players.find(
+    (p) => p.id === game.state.currentTurnPlayerId,
+  );
   const myPlayer = players.find((player) => player.id === currentUserId);
   const topCard = game.state.discardPile[game.state.discardPile.length - 1];
   const activeColor = useMemo(() => {
@@ -188,7 +198,10 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
             <Button color="unoRed" onClick={() => handleChooseColor("red")}>
               Red
             </Button>
-            <Button color="unoYellow" onClick={() => handleChooseColor("yellow")}>
+            <Button
+              color="unoYellow"
+              onClick={() => handleChooseColor("yellow")}
+            >
               Yellow
             </Button>
             <Button color="unoGreen" onClick={() => handleChooseColor("green")}>
@@ -205,10 +218,22 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
           <Badge
             size="lg"
             variant="gradient"
-            gradient={{ from: isMyTurn ? "unoGreen.5" : "gray", to: isMyTurn ? "green" : "gray.6", deg: 90 }}
+            gradient={{
+              from: isMyTurn ? "unoGreen.5" : "gray",
+              to: isMyTurn ? "green" : "gray.6",
+              deg: 90,
+            }}
+            data-testid="game-status"
           >
-            {isMyTurn ? "Your Turn" : `${currentPlayer?.displayName || "..."}'s Turn`}
+            {isMyTurn
+              ? "Your Turn"
+              : `${currentPlayer?.displayName || "..."}'s Turn`}
           </Badge>
+          <div
+            data-testid="is-my-turn"
+            data-value={isMyTurn.toString()}
+            style={{ display: "none" }}
+          />
         </Group>
 
         {/* Other Players */}
@@ -225,7 +250,9 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                   <FaUndo size={16} />
                 )}
                 <Text size="sm" c="dimmed">
-                  {game.state.direction === "clockwise" ? "Clockwise" : "Counter-clockwise"}
+                  {game.state.direction === "clockwise"
+                    ? "Clockwise"
+                    : "Counter-clockwise"}
                 </Text>
               </Group>
             </Group>
@@ -235,16 +262,24 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                 const isCurrent = player.id === game.state.currentTurnPlayerId;
                 const isMe = player.id === currentUserId;
                 return (
-                  <Grid.Col key={player.id} span={{ base: 12, xs: 6, sm: 4, md: 3 }}>
+                  <Grid.Col
+                    key={player.id}
+                    span={{ base: 12, xs: 6, sm: 4, md: 3 }}
+                  >
                     <Paper
                       withBorder
                       p="md"
                       radius="md"
                       bg={isCurrent ? "unoBlue.0" : undefined}
                       style={{
-                        borderColor: isCurrent ? "var(--mantine-color-unoBlue-4)" : undefined,
+                        borderColor: isCurrent
+                          ? "var(--mantine-color-unoBlue-4)"
+                          : undefined,
                         borderWidth: isCurrent ? 2 : 1,
                       }}
+                      data-testid={
+                        isMe ? "player-status" : `opponent-${player.id}-status`
+                      }
                     >
                       <Stack gap="xs">
                         <Group gap="xs" justify="space-between">
@@ -256,8 +291,17 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                         </Group>
                         <Group gap="xs">
                           <FaHandPaper size={16} />
-                          <Text size="sm" c="dimmed">
-                            {player.cardCount} {player.cardCount === 1 ? "card" : "cards"}
+                          <Text
+                            size="sm"
+                            c="dimmed"
+                            data-testid={
+                              isMe
+                                ? "player-hand-count"
+                                : `opponent-${player.id}-card-count`
+                            }
+                          >
+                            {player.cardCount}{" "}
+                            {player.cardCount === 1 ? "card" : "cards"}
                           </Text>
                         </Group>
                         <Group gap="xs">
@@ -301,6 +345,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                     alignItems: "center",
                     justifyContent: "center",
                   }}
+                  data-testid="draw-pile"
                 >
                   <Text size="xl" fw={700} c="gray.7">
                     {game.state.drawPileCount}
@@ -309,22 +354,36 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
               </Stack>
 
               {/* Discard Pile */}
-              <Stack gap="xs" align="center">
+              <Stack gap="xs" align="center" data-testid="discard-pile">
                 <Text size="sm" c="dimmed" fw={500}>
                   Discard Pile
                 </Text>
                 {topCard ? (
                   <Stack gap="xs" align="center">
                     <UnoCardDisplay card={topCard} />
+                    <div
+                      data-testid="top-card-color"
+                      style={{ display: "none" }}
+                    >
+                      {"color" in topCard ? topCard.color : "wild"}
+                    </div>
+                    <div
+                      data-testid="top-card-value"
+                      style={{ display: "none" }}
+                    >
+                      {topCard.value}
+                    </div>
                     {activeColor && (
                       <Badge
                         size="sm"
-                        color={{
-                          red: "unoRed",
-                          yellow: "unoYellow",
-                          green: "unoGreen",
-                          blue: "unoBlue",
-                        }[activeColor]}
+                        color={
+                          {
+                            red: "unoRed",
+                            yellow: "unoYellow",
+                            green: "unoGreen",
+                            blue: "unoBlue",
+                          }[activeColor]
+                        }
                         variant="filled"
                       >
                         {activeColor.toUpperCase()}
@@ -361,6 +420,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                   onClick={handleDrawCard}
                   disabled={!isMyTurn || isProcessing}
                   loading={isProcessing && isMyTurn}
+                  data-testid="draw-pile-button"
                 >
                   {drawLabel}
                 </Button>
@@ -407,6 +467,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
                     clickable
                     playable={isPlayable(card)}
                     onClick={() => handleCardClick(card, index)}
+                    testId={`hand-card-${index}`}
                   />
                 ))}
               </Group>
@@ -427,6 +488,7 @@ interface UnoCardDisplayProps {
   clickable?: boolean;
   playable?: boolean;
   onClick?: () => void;
+  testId?: string;
 }
 
 const UnoCardDisplay = ({
@@ -434,6 +496,7 @@ const UnoCardDisplay = ({
   clickable,
   playable,
   onClick,
+  testId,
 }: UnoCardDisplayProps) => {
   const isWild = card.value === "wild" || card.value === "wild_draw4";
   const color: "red" | "yellow" | "green" | "blue" | "gray" = isWild
@@ -462,6 +525,8 @@ const UnoCardDisplay = ({
       h={110}
       bg={bgColor}
       onClick={onClick}
+      data-testid={testId}
+      data-playable={playable?.toString()}
       style={{
         borderRadius: 8,
         border: "3px solid white",
@@ -469,7 +534,11 @@ const UnoCardDisplay = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: clickable ? (isInteractive ? "pointer" : "not-allowed") : "default",
+        cursor: clickable
+          ? isInteractive
+            ? "pointer"
+            : "not-allowed"
+          : "default",
         transition: "transform 0.1s",
         opacity: clickable && !playable ? 0.5 : 1,
         ...(isInteractive && {

@@ -75,7 +75,7 @@ export const getDeckForSeed = (seed: string): Card[] => {
 
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
-        const temp = deck[i];
+    const temp = deck[i];
     if (!temp || !deck[j]) {
       throw new Error("Deck shuffle encountered an undefined card");
     }

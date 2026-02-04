@@ -16,15 +16,11 @@ import {
   Tooltip,
 } from "@mantine/core";
 import type { Game } from "@uno/shared";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaCheck, FaCog, FaCopy, FaLink } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 import { useUser } from "../../hooks/user";
-import {
-  joinGame,
-  onGameUpdate,
-  startGame,
-} from "../../service/game-service";
+import { joinGame, onGameUpdate, startGame } from "../../service/game-service";
 import CompletedGame from "./completed-game";
 import GameBoard from "./game-board";
 import PlayersSection from "./players-section";
@@ -139,6 +135,7 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
               size="lg"
               variant="gradient"
               gradient={{ from: "unoBlue.4", to: "cyan", deg: 90 }}
+              data-testid="game-status"
             >
               Waiting for players
             </Badge>
@@ -286,21 +283,23 @@ const WaitingLobby = ({ game, currentUserId }: WaitingLobbyProps) => {
                 disabled={game.players.length < 2}
                 loading={starting}
                 onClick={handleStartGame}
+                data-testid="start-game-button"
               >
                 Start Game
               </Button>
             </>
           ) : (
-              <Button
-                size="lg"
-                variant="gradient"
-                gradient={{ from: "unoBlue.4", to: "cyan", deg: 90 }}
-                disabled={!canJoin}
-                loading={joining}
-                onClick={handleJoinGame}
-              >
-                {hasOpenSpots ? "Join Game" : "Game Full"}
-              </Button>
+            <Button
+              size="lg"
+              variant="gradient"
+              gradient={{ from: "unoBlue.4", to: "cyan", deg: 90 }}
+              disabled={!canJoin}
+              loading={joining}
+              onClick={handleJoinGame}
+              data-testid="join-game-button"
+            >
+              {hasOpenSpots ? "Join Game" : "Game Full"}
+            </Button>
           )}
         </Group>
       </Stack>

@@ -33,7 +33,11 @@ type FormValues = {
 const CreateGameForm = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = async ({ houseRules, isPublic, maxPlayers }: FormValues) => {
+  const handleSubmit = async ({
+    houseRules,
+    isPublic,
+    maxPlayers,
+  }: FormValues) => {
     try {
       const gameId = await createGame({
         isPrivate: !isPublic,
@@ -49,20 +53,21 @@ const CreateGameForm = () => {
     }
   };
 
-  const { onSubmit, submitting, getValues, setFieldValue, key } = useForm<FormValues>({
-    initialValues: {
-      isPublic: true,
-      maxPlayers: 4,
-      houseRules: {
-        stacking: false,
-        jumpIn: false,
-        sevenSwap: false,
-        zeroRotation: false,
-        drawToMatch: false,
+  const { onSubmit, submitting, getValues, setFieldValue, key } =
+    useForm<FormValues>({
+      initialValues: {
+        isPublic: true,
+        maxPlayers: 4,
+        houseRules: {
+          stacking: false,
+          jumpIn: false,
+          sevenSwap: false,
+          zeroRotation: false,
+          drawToMatch: false,
+        },
       },
-    },
-    mode: "uncontrolled",
-  });
+      mode: "uncontrolled",
+    });
 
   const isPublic = getValues().isPublic;
 

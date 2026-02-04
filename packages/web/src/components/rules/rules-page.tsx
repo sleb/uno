@@ -1,11 +1,4 @@
-import {
-  Container,
-  Paper,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Container, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
 const RulesPage = () => {
   return (
@@ -86,9 +79,9 @@ const RulesPage = () => {
               </Text>
               <Text mb="md">
                 On your turn, you must match a card from your hand to the card
-                on the top of the DISCARD pile, either by <strong>number</strong>,{" "}
-                <strong>color</strong>, or <strong>symbol</strong> (symbols
-                represent Action Cards).
+                on the top of the DISCARD pile, either by{" "}
+                <strong>number</strong>, <strong>color</strong>, or{" "}
+                <strong>symbol</strong> (symbols represent Action Cards).
               </Text>
               <Text mb="md">
                 <strong>EXAMPLE:</strong> If the card on the DISCARD pile is a
@@ -317,9 +310,7 @@ const RulesPage = () => {
                   <Title order={3} size="h4" mb="xs">
                     Stacking
                   </Title>
-                  <Text mb="sm">
-                    Same rules as UNO card game, except:
-                  </Text>
+                  <Text mb="sm">Same rules as UNO card game, except:</Text>
                   <ol>
                     <li>
                       When a player plays a Draw Two card, the next player may
@@ -349,9 +340,7 @@ const RulesPage = () => {
                   <Title order={3} size="h4" mb="xs">
                     Jump-In
                   </Title>
-                  <Text mb="sm">
-                    Same rules as UNO card game, except:
-                  </Text>
+                  <Text mb="sm">Same rules as UNO card game, except:</Text>
                   <Text mb="sm">
                     If you are holding the exact same card (identical color and
                     number) as the card on top of Discard Pile, you may play it

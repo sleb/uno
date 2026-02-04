@@ -109,32 +109,35 @@ async function seedData() {
     }
 
     console.log("\n🎮 Creating completed games...");
-    await db.collection("games").doc("test-game-1").set({
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      startedAt: new Date(Date.now() - 3500000).toISOString(),
-      lastActivityAt: new Date(Date.now() - 3000000).toISOString(),
-      config: { isPrivate: false, maxPlayers: 4, houseRules: [] },
-      players: ["test-user-1", "test-user-2"],
-      state: {
-        status: "completed",
-        currentTurnPlayerId: null,
-        direction: "clockwise",
-        deckSeed: "seed-123",
-        drawPileCount: 45,
-        discardPile: [{ kind: "number", color: "red", value: 7 }],
-        currentColor: null,
-        mustDraw: 0,
-      },
-      finalScores: {
-        winnerId: "test-user-1",
-        winnerScore: 145,
-        completedAt: new Date(Date.now() - 3000000).toISOString(),
-        playerScores: [
-          { playerId: "test-user-1", score: 145, cardCount: 0, rank: 1 },
-          { playerId: "test-user-2", score: 0, cardCount: 5, rank: 2 },
-        ],
-      },
-    });
+    await db
+      .collection("games")
+      .doc("test-game-1")
+      .set({
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        startedAt: new Date(Date.now() - 3500000).toISOString(),
+        lastActivityAt: new Date(Date.now() - 3000000).toISOString(),
+        config: { isPrivate: false, maxPlayers: 4, houseRules: [] },
+        players: ["test-user-1", "test-user-2"],
+        state: {
+          status: "completed",
+          currentTurnPlayerId: null,
+          direction: "clockwise",
+          deckSeed: "seed-123",
+          drawPileCount: 45,
+          discardPile: [{ kind: "number", color: "red", value: 7 }],
+          currentColor: null,
+          mustDraw: 0,
+        },
+        finalScores: {
+          winnerId: "test-user-1",
+          winnerScore: 145,
+          completedAt: new Date(Date.now() - 3000000).toISOString(),
+          playerScores: [
+            { playerId: "test-user-1", score: 145, cardCount: 0, rank: 1 },
+            { playerId: "test-user-2", score: 0, cardCount: 5, rank: 2 },
+          ],
+        },
+      });
     console.log("   ✓ Game 1: Alice defeated Bob (145 pts)");
 
     console.log("\n✅ Test data seeded successfully!");
@@ -142,7 +145,6 @@ async function seedData() {
     console.log("   • alice@example.com / password123");
     console.log("   • bob@example.com / password123");
     console.log("\n💡 Tip: Log in as alice@example.com to see rich stats!");
-
   } catch (error) {
     console.error("\n❌ Error:", error);
     process.exit(1);

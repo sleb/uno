@@ -1,14 +1,14 @@
 import {
-    Avatar,
-    Badge,
-    Button,
-    Card,
-    Center,
-    Container,
-    SimpleGrid,
-    Stack,
-    Text,
-    Title,
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Center,
+  Container,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
 } from "@mantine/core";
 import { useState } from "react";
 import { FaGamepad, FaPlus, FaTimes, FaTrophy, FaUsers } from "react-icons/fa";

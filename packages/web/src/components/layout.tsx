@@ -1,22 +1,28 @@
 import {
-    Anchor,
-    AppShell,
-    Avatar,
-    Burger,
-    Button,
-    Container,
-    Divider,
-    Drawer,
-    Group,
-    Menu,
-    NavLink,
-    Stack,
-    Text,
-    UnstyledButton,
+  Anchor,
+  AppShell,
+  Avatar,
+  Burger,
+  Button,
+  Container,
+  Divider,
+  Drawer,
+  Group,
+  Menu,
+  NavLink,
+  Stack,
+  Text,
+  UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { signOut } from "firebase/auth";
-import { FaBook, FaChevronDown, FaHome, FaSignOutAlt, FaUser } from "react-icons/fa";
+import {
+  FaBook,
+  FaChevronDown,
+  FaHome,
+  FaSignOutAlt,
+  FaUser,
+} from "react-icons/fa";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { useUser } from "../hooks/user";

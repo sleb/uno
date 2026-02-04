@@ -8,7 +8,8 @@ try {
   app = admin.app(); // Get default app if it exists
 } catch (e) {
   // Initialize with project ID if provided (for tests)
-  const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
+  const projectId =
+    process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
   app = admin.initializeApp(projectId ? { projectId } : undefined);
 }
 

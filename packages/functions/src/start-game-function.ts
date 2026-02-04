@@ -1,5 +1,5 @@
-import { StartGameRequestSchema, type StartGameRequest } from "@uno/shared";
-import { HttpsError, type CallableRequest } from "firebase-functions/https";
+import { type StartGameRequest, StartGameRequestSchema } from "@uno/shared";
+import { type CallableRequest, HttpsError } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import { startGame as _startGame } from "./service/game-service";
 
@@ -22,7 +22,10 @@ export const startGame = async (request: CallableRequest<StartGameRequest>) => {
         throw new HttpsError("not-found", "Game not found.");
       }
       if (e.message.includes("not in waiting status")) {
-        throw new HttpsError("failed-precondition", "Game has already started.");
+        throw new HttpsError(
+          "failed-precondition",
+          "Game has already started.",
+        );
       }
       if (e.message.includes("at least 2 players")) {
         throw new HttpsError(

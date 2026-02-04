@@ -1,10 +1,10 @@
 import { type User, type UserData, UserSchema } from "@uno/shared";
 import {
-    doc,
-    type FirestoreDataConverter,
-    onSnapshot,
-    type QueryDocumentSnapshot,
-    setDoc,
+  doc,
+  type FirestoreDataConverter,
+  onSnapshot,
+  type QueryDocumentSnapshot,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 

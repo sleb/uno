@@ -42,8 +42,6 @@ export const GameFinalScoresSchema = z.object({
   playerScores: z.array(PlayerScoreSchema),
 });
 
-
-
 export const UserDataSchema = z.object({
   displayName: z.string(),
   avatar: z.string(),

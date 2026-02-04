@@ -1,13 +1,13 @@
-import { Paper, SimpleGrid, Stack, Text, Title, Center } from "@mantine/core";
-import {
-  FaTrophy,
-  FaChartBar,
-  FaGamepad,
-  FaFire,
-  FaStar,
-  FaBolt,
-} from "react-icons/fa";
+import { Center, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import type { User } from "@uno/shared";
+import {
+  FaBolt,
+  FaChartBar,
+  FaFire,
+  FaGamepad,
+  FaStar,
+  FaTrophy,
+} from "react-icons/fa";
 
 interface ProfileStatsProps {
   user: User;

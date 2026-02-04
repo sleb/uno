@@ -23,8 +23,8 @@ import {
   type FirestoreDataConverter,
   getDoc,
   onSnapshot,
-  query,
   type QueryDocumentSnapshot,
+  query,
   where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -187,7 +187,9 @@ export const onPlayerHandUpdate = (
   getDoc(gameRef(gameId)).then((snap) => {
     if (cancelled) return;
     if (!snap.exists()) {
-      console.warn(`Game ${gameId} not found — skipping playerHand listener for ${playerId}`);
+      console.warn(
+        `Game ${gameId} not found — skipping playerHand listener for ${playerId}`,
+      );
       return;
     }
     unsubscribe = onSnapshot(

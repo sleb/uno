@@ -3,7 +3,7 @@ import {
   DrawCardRequestSchema,
   type DrawCardResponse,
 } from "@uno/shared";
-import { HttpsError, type CallableRequest } from "firebase-functions/https";
+import { type CallableRequest, HttpsError } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import { drawCard as _drawCard } from "./service/game-service";
 
@@ -41,9 +41,6 @@ export const drawCard = async (
       }
     }
 
-    throw new HttpsError(
-      "internal",
-      "An error occurred while drawing a card.",
-    );
+    throw new HttpsError("internal", "An error occurred while drawing a card.");
   }
 };
