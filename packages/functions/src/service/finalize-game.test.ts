@@ -5,19 +5,19 @@ import type { Card, UserStats } from "@uno/shared";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.FIREBASE_PROJECT_ID = "test-project";
 
+import { firestore, app as getApp } from "firebase-admin";
+import type { App } from "firebase-admin/app";
+import type { Firestore } from "firebase-admin/firestore";
 import { finalizeGame } from "./game-service";
 
-// Use CommonJS require for admin
-const admin = require("firebase-admin");
-
 // Test setup with Firebase Admin
-let app: any;
-let db: any;
+let app: App;
+let db: Firestore;
 
 beforeEach(async () => {
   // Get the already-initialized app from game-service
-  app = admin.app();
-  db = admin.firestore(app);
+  app = getApp();
+  db = firestore(app);
 });
 
 afterEach(async () => {
@@ -155,7 +155,7 @@ describe("finalizeGame integration tests", () => {
       });
 
     // Execute: Finalize game in a transaction
-    await db.runTransaction(async (t: any) => {
+    await db.runTransaction(async (t: FirebaseFirestore.Transaction) => {
       await finalizeGame("test-game", "player1", t);
     });
 
@@ -164,14 +164,14 @@ describe("finalizeGame integration tests", () => {
     const gameData = game.data();
 
     expect(gameData).toBeDefined();
-    expect(gameData!.finalScores).toBeDefined();
-    expect(gameData!.finalScores.winnerId).toBe("player1");
-    expect(gameData!.finalScores.winnerScore).toBe(75);
-    expect(gameData!.finalScores.completedAt).toBeDefined();
-    expect(gameData!.finalScores.playerScores).toHaveLength(2);
+    expect(gameData?.finalScores).toBeDefined();
+    expect(gameData?.finalScores.winnerId).toBe("player1");
+    expect(gameData?.finalScores.winnerScore).toBe(75);
+    expect(gameData?.finalScores.completedAt).toBeDefined();
+    expect(gameData?.finalScores.playerScores).toHaveLength(2);
 
     // Verify: Rankings are correct (winner first, then by card count)
-    const rankings = gameData!.finalScores.playerScores;
+    const rankings = gameData?.finalScores.playerScores;
     expect(rankings[0].playerId).toBe("player1");
     expect(rankings[0].rank).toBe(1);
     expect(rankings[0].score).toBe(75);
@@ -186,7 +186,7 @@ describe("finalizeGame integration tests", () => {
 
     // Verify: Winner stats updated correctly
     const winner = await db.collection("users").doc("player1").get();
-    const winnerStats = winner.data()!.stats;
+    const winnerStats = winner.data()?.stats;
 
     expect(winnerStats.gamesPlayed).toBe(6); // 5 + 1
     expect(winnerStats.gamesWon).toBe(3); // 2 + 1
@@ -199,7 +199,7 @@ describe("finalizeGame integration tests", () => {
 
     // Verify: Loser stats updated correctly
     const loser = await db.collection("users").doc("player2").get();
-    const loserStats = loser.data()!.stats;
+    const loserStats = loser.data()?.stats;
 
     expect(loserStats.gamesPlayed).toBe(4); // 3 + 1
     expect(loserStats.gamesWon).toBe(1); // unchanged
@@ -308,7 +308,7 @@ describe("finalizeGame integration tests", () => {
       });
 
     // Execute: Finalize game
-    await db.runTransaction(async (t: any) => {
+    await db.runTransaction(async (t: FirebaseFirestore.Transaction) => {
       await finalizeGame("test-game-2", "player1", t);
     });
 
@@ -317,9 +317,9 @@ describe("finalizeGame integration tests", () => {
     const winnerData = winner.data();
 
     expect(winnerData).toBeDefined();
-    expect(winnerData!.stats).toBeDefined();
+    expect(winnerData?.stats).toBeDefined();
 
-    const stats = winnerData!.stats;
+    const stats = winnerData?.stats;
     expect(stats.gamesPlayed).toBe(1);
     expect(stats.gamesWon).toBe(1);
     expect(stats.gamesLost).toBe(0);
@@ -334,9 +334,9 @@ describe("finalizeGame integration tests", () => {
     const loserData = loser.data();
 
     expect(loserData).toBeDefined();
-    expect(loserData!.stats).toBeDefined();
+    expect(loserData?.stats).toBeDefined();
 
-    const loserStats = loserData!.stats;
+    const loserStats = loserData?.stats;
     expect(loserStats.gamesPlayed).toBe(1);
     expect(loserStats.gamesWon).toBe(0);
     expect(loserStats.gamesLost).toBe(1);
@@ -350,9 +350,9 @@ describe("finalizeGame integration tests", () => {
     const game = await gameRef.get();
     const gameData = game.data();
 
-    expect(gameData!.finalScores).toBeDefined();
-    expect(gameData!.finalScores.winnerId).toBe("player1");
-    expect(gameData!.finalScores.winnerScore).toBe(27);
+    expect(gameData?.finalScores).toBeDefined();
+    expect(gameData?.finalScores.winnerId).toBe("player1");
+    expect(gameData?.finalScores.winnerScore).toBe(27);
   });
 });
 
@@ -365,13 +365,13 @@ describe("finalizeGame score calculation logic", () => {
     // Player 3: 2 cards (total: 7 + 20 = 27 points)
     // Winner should get: 75 + 27 = 102 points
 
-    const player2Hand: Card[] = [
+    const _player2Hand: Card[] = [
       { kind: "number", color: "red", value: 5 },
       { kind: "special", color: "blue", value: "skip" },
       { kind: "wild", value: "wild" },
     ];
 
-    const player3Hand: Card[] = [
+    const _player3Hand: Card[] = [
       { kind: "number", color: "green", value: 7 },
       { kind: "special", color: "yellow", value: "draw2" },
     ];
@@ -403,9 +403,9 @@ describe("finalizeGame score calculation logic", () => {
       return a.cardCount - b.cardCount;
     });
 
-    expect(sorted[0].playerId).toBe("p1"); // Winner first
-    expect(sorted[1].playerId).toBe("p3"); // 2 cards = 2nd place
-    expect(sorted[2].playerId).toBe("p2"); // 5 cards = 3rd place
+    expect(sorted[0]?.playerId).toBe("p1"); // Winner first
+    expect(sorted[1]?.playerId).toBe("p3"); // 2 cards = 2nd place
+    expect(sorted[2]?.playerId).toBe("p2"); // 5 cards = 3rd place
   });
 
   test("stats calculation for winner", () => {
@@ -485,7 +485,7 @@ describe("finalizeGame score calculation logic", () => {
 
   test("stats initialization for first game", () => {
     // New user with no stats plays their first game and wins
-    const currentStats: UserStats = {
+    const _currentStats: UserStats = {
       gamesPlayed: 0,
       gamesWon: 0,
       gamesLost: 0,
@@ -496,9 +496,9 @@ describe("finalizeGame score calculation logic", () => {
       specialCardsPlayed: 0,
     };
 
-    const gameScore = 85;
-    const gameCardsPlayed = 15;
-    const gameSpecialCardsPlayed = 3;
+    const _gameScore = 85;
+    const _gameCardsPlayed = 15;
+    const _gameSpecialCardsPlayed = 3;
 
     const newStats: UserStats = {
       gamesPlayed: 1,

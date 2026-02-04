@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { Card } from "@uno/shared";
 
 // IMPORTANT: Set emulator env vars BEFORE importing game-service
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
@@ -11,8 +10,8 @@ import { callUno, drawCard, playCard } from "./game-service";
 const admin = require("firebase-admin");
 
 // Test setup with Firebase Admin
-let app: any;
-let db: any;
+let app: import("firebase-admin").app.App;
+let db: FirebaseFirestore.Firestore;
 
 beforeEach(async () => {
   // Get the already-initialized app from game-service
@@ -91,8 +90,7 @@ const createInProgressGame = async (
     });
 
   // Create player docs and hands
-  for (let i = 0; i < playerIds.length; i++) {
-    const playerId = playerIds[i];
+  for (const playerId of playerIds) {
     const user = await db.collection("users").doc(playerId).get();
 
     // Create player doc

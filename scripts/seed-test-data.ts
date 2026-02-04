@@ -3,17 +3,16 @@
  * Seed script to populate Firebase emulator with test data
  */
 
-import { initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+// ESM imports work fine in Bun for standalone scripts
+import admin from "firebase-admin";
 
 // Connect to emulators
 process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
 process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
 
-const app = initializeApp({ projectId: "demo-uno-project" });
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = admin.initializeApp({ projectId: "demo-uno-project" });
+const auth = admin.auth(app);
+const db = admin.firestore(app);
 
 const testUsers = [
   {
@@ -86,8 +85,12 @@ async function seedData() {
           password: "password123",
         });
         console.log(`   ✓ Created ${user.displayName}`);
-      } catch (error: any) {
-        if (error.code === "auth/uid-already-exists") {
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "auth/uid-already-exists"
+        ) {
           console.log(`   → ${user.displayName} already exists`);
         } else {
           throw error;
@@ -97,7 +100,11 @@ async function seedData() {
 
     console.log("\n📝 Creating user profiles...");
     for (const user of testUsers) {
-      const userData: any = {
+      const userData: {
+        displayName: string;
+        avatar: string;
+        stats?: typeof user.stats;
+      } = {
         displayName: user.displayName,
         avatar: user.avatar,
       };

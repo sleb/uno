@@ -3,10 +3,10 @@
 const admin = require("firebase-admin") as typeof import("firebase-admin");
 
 // Only initialize if not already initialized
-let app;
+let app: import("firebase-admin").app.App;
 try {
   app = admin.app(); // Get default app if it exists
-} catch (e) {
+} catch (_e) {
   // Initialize with project ID if provided (for tests)
   const projectId =
     process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
