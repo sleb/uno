@@ -477,19 +477,50 @@ export const finalizeGame = async (
   gameId: string,
   winnerId: string,
   t: Transaction,
+  preFetchedData?: {
+    game: GameData;
+    playerHands: Record<string, PlayerHandData>;
+    gamePlayers: Record<string, GamePlayerData>;
+    userDataMap: Record<string, UserData>;
+  },
 ): Promise<void> => {
   const now = new Date().toISOString();
 
-  // 1. Get all player data (both hands and player docs)
-  const game = await getGame(gameId, t);
-  const playerIds = game.players;
+  // If data is pre-fetched (from playCard), use it; otherwise fetch it
+  let game: GameData;
+  let playerIds: string[];
+  let playerHands: Record<string, PlayerHandData>;
+  let gamePlayers: Record<string, GamePlayerData>;
+  let userDataMap: Record<string, UserData>;
 
-  // Fetch all player hands and player docs
-  const playerHands = await getPlayerHands(gameId, playerIds, t);
-  const gamePlayers: Record<string, GamePlayerData> = {};
+  if (preFetchedData) {
+    // Use pre-fetched data (avoids read-after-write in transactions)
+    game = preFetchedData.game;
+    playerIds = game.players;
+    playerHands = preFetchedData.playerHands;
+    gamePlayers = preFetchedData.gamePlayers;
+    userDataMap = preFetchedData.userDataMap;
+  } else {
+    // Fetch data (original behavior for standalone calls)
+    game = await getGame(gameId, t);
+    playerIds = game.players;
 
-  for (const playerId of playerIds) {
-    gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);
+    // Fetch all player hands and player docs
+    playerHands = await getPlayerHands(gameId, playerIds, t);
+    gamePlayers = {};
+
+    for (const playerId of playerIds) {
+      gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);
+    }
+
+    // Read all user documents
+    userDataMap = {};
+    for (const playerId of playerIds) {
+      const userSnap = await getDoc(userRef(playerId), t);
+      if (userSnap.exists) {
+        userDataMap[playerId] = UserDataSchema.parse(userSnap.data());
+      }
+    }
   }
 
   // 2. Calculate scores for each player
@@ -552,21 +583,12 @@ export const finalizeGame = async (
     playerScores,
   };
 
-  // 5. Read all user documents BEFORE any writes (required by Firestore transactions)
-  const userDataMap: Record<string, UserData> = {};
-  for (const playerId of playerIds) {
-    const userSnap = await getDoc(userRef(playerId), t);
-    if (userSnap.exists) {
-      userDataMap[playerId] = UserDataSchema.parse(userSnap.data());
-    }
-  }
-
-  // 6. Update game document with final scores
+  // 5. Update game document with final scores
   t.update(gameRef(gameId), {
     finalScores,
   });
 
-  // 7. Update user statistics for all players
+  // 6. Update user statistics for all players
   for (const playerId of playerIds) {
     const userData = userDataMap[playerId];
     if (!userData) continue; // Skip if user doesn't exist
@@ -627,6 +649,7 @@ export const playCard = async (
   chosenColor?: string,
 ): Promise<{ winner?: string }> => {
   return await db.runTransaction(async (t) => {
+    // IMPORTANT: Do ALL reads before ANY writes (Firestore transaction requirement)
     const game = await getGame(gameId, t);
 
     if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
@@ -700,6 +723,46 @@ export const playCard = async (
     const isWinner = newHand.length === 0;
     const now = new Date().toISOString();
 
+    // Pre-fetch all data needed for finalizeGame BEFORE any writes
+    let preFetchedFinalizeData:
+      | {
+          game: GameData;
+          playerHands: Record<string, PlayerHandData>;
+          gamePlayers: Record<string, GamePlayerData>;
+          userDataMap: Record<string, UserData>;
+        }
+      | undefined;
+
+    if (isWinner) {
+      // Fetch all data finalizeGame will need
+      const playerIds = game.players;
+      const playerHands = await getPlayerHands(gameId, playerIds, t);
+      const gamePlayers: Record<string, GamePlayerData> = {};
+      const userDataMap: Record<string, UserData> = {};
+
+      for (const playerId of playerIds) {
+        gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);
+      }
+
+      for (const playerId of playerIds) {
+        const userSnap = await getDoc(userRef(playerId), t);
+        if (userSnap.exists) {
+          userDataMap[playerId] = UserDataSchema.parse(userSnap.data());
+        }
+      }
+
+      // Update the current player's hand in the pre-fetched data
+      playerHands[playerId] = { hand: newHand };
+
+      preFetchedFinalizeData = {
+        game,
+        playerHands,
+        gamePlayers,
+        userDataMap,
+      };
+    }
+
+    // NOW we can do writes
     t.update(gameRef(gameId), {
       "state.discardPile": updatedDiscardPile,
       "state.currentTurnPlayerId": isWinner ? null : nextPlayerId,
@@ -727,8 +790,8 @@ export const playCard = async (
     });
 
     // Finalize game if there's a winner (calculate scores, update stats)
-    if (isWinner) {
-      await finalizeGame(gameId, playerId, t);
+    if (isWinner && preFetchedFinalizeData) {
+      await finalizeGame(gameId, playerId, t, preFetchedFinalizeData);
     }
 
     return { winner: isWinner ? playerId : undefined };
@@ -757,6 +820,7 @@ export const drawCard = async (
     }
 
     const playerHand = await getPlayerHand(gameId, playerId, t);
+    const player = await getGamePlayer(gameId, playerId, t);
     const playerHands = await getPlayerHands(gameId, game.players, t);
     const drawCount = game.state.mustDraw > 0 ? game.state.mustDraw : count;
 

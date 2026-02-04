@@ -7,7 +7,9 @@ A Bun-based monorepo for **Uno**, an asynchronous multiplayer card game using Fi
 - **[DESIGN.md](DESIGN.md)** - Architecture and data model design
 - **[GAME_RULES.md](GAME_RULES.md)** - Official UNO rules and house rules variants
 - **[ROADMAP.md](ROADMAP.md)** - Project roadmap, implementation status, and planned features
+- **[TESTING_SUMMARY.md](TESTING_SUMMARY.md)** - Complete testing overview (48 tests)
 - **[E2E_TESTS.md](E2E_TESTS.md)** - End-to-end testing guide with Playwright
+- **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** - Integration testing guide for Cloud Functions
 - **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guide for AI assistants
 
 ## Project Structure
@@ -75,6 +77,33 @@ bun build src/index.ts --outdir dist --target node --format cjs --external fireb
 
 ## Testing
 
+### Integration Tests
+
+Cloud Functions are tested with Bun's test runner and Firebase emulators.
+
+**Running Tests:**
+
+```bash
+# Run all tests (starts Firestore emulator automatically)
+firebase emulators:exec --only firestore "bun test packages/functions"
+
+# Run specific test file
+bun test packages/functions/src/service/card-validation.test.ts
+
+# Watch mode
+bun test --watch packages/functions
+```
+
+**Test Coverage:**
+
+- ✅ Card validation logic (11 tests)
+- ✅ Score calculation (13 tests)
+- ✅ Deck generation (3 tests)
+- ✅ Game finalization with Firestore (2 integration tests)
+- **Total**: 36/36 passing (100%)
+
+See [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md) for detailed documentation.
+
 ### E2E Tests
 
 The project includes comprehensive end-to-end tests for two-player gameplay using Playwright and Firebase Auth emulator.
@@ -129,7 +158,7 @@ bun test packages/functions/src/service/game-service.test.ts
 bun test --watch
 ```
 
-Tests use Bun's built-in test runner (no Jest or Vitest required).
+Integration and unit tests use Bun's built-in test runner (no Jest or Vitest required).
 
 ## Architecture
 
