@@ -794,7 +794,7 @@ export const playCard = async (
       await finalizeGame(gameId, playerId, t, preFetchedFinalizeData);
     }
 
-    return { winner: isWinner ? playerId : undefined };
+    return isWinner ? { winner: playerId } : {};
   });
 };
 

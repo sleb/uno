@@ -14,12 +14,13 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import type {
-  Color,
-  Game,
-  GamePlayer,
-  PlayerHand,
-  Card as UnoCard,
+import {
+  type Color,
+  type Game,
+  type GamePlayer,
+  PlayCardRequestSchema,
+  type PlayerHand,
+  type Card as UnoCard,
 } from "@uno/shared";
 import { useEffect, useMemo, useState } from "react";
 import { FaArrowRight, FaHandPaper, FaRedo, FaUndo } from "react-icons/fa";
@@ -109,11 +110,12 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   const handlePlayCard = async (cardIndex: number, chosenColor?: Color) => {
     setIsProcessing(true);
     try {
-      await playCard({
+      const request = PlayCardRequestSchema.parse({
         gameId: game.id,
         cardIndex,
-        chosenColor,
+        ...(chosenColor !== undefined && { chosenColor }),
       });
+      await playCard(request);
     } catch (error) {
       notifyError(error);
     } finally {
