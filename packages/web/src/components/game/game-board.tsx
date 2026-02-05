@@ -64,13 +64,13 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   }, [game.id, currentUserId]);
 
   const isMyTurn = game.state.currentTurnPlayerId === currentUserId;
+  const currentTurnPlayerId = game.state.currentTurnPlayerId;
 
   // Reset hasDrawnThisTurn when turn changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally only want to trigger on currentTurnPlayerId changes
   useEffect(() => {
-    if (isMyTurn) {
-      setHasDrawnThisTurn(false);
-    }
-  }, [isMyTurn]);
+    setHasDrawnThisTurn(false);
+  }, [currentTurnPlayerId]);
   const currentPlayer = players.find(
     (p) => p.id === game.state.currentTurnPlayerId,
   );
@@ -124,6 +124,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
         cardIndex,
         ...(chosenColor !== undefined && { chosenColor }),
       });
+      console.log(`Playing card with request: ${JSON.stringify(request)}`);
       await playCard(request);
     } catch (error) {
       notifyError(error);

@@ -291,6 +291,217 @@ describe("passTurn integration tests", () => {
   });
 });
 
+describe("draw-then-play integration tests", () => {
+  test("should allow playing a drawn card immediately", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set up game state with a specific discard pile
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({
+        "state.discardPile": [{ kind: "number", color: "blue", value: 7 }],
+      });
+
+    // Clear player1's hand so they have no playable cards
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .set({
+        hand: [
+          { kind: "number", color: "red", value: 3 },
+          { kind: "number", color: "yellow", value: 8 },
+        ],
+      });
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .update({ cardCount: 2 });
+
+    // Step 1: Draw a card (normal draw, not penalty)
+    const drawResult = await drawCard("game1", "player1", 1);
+    expect(drawResult.cards).toHaveLength(1);
+
+    // Verify turn stayed with player1
+    let gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player1");
+
+    // Verify hand now has 3 cards
+    let handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+    expect(handDoc.data()?.hand.length).toBe(3);
+
+    // Step 2: Play the drawn card (assume it's the last card in hand, index 2)
+    // In a real scenario, we'd check if the drawn card is playable first
+    // For this test, we'll manually set a playable drawn card
+    const drawnCard = { kind: "number", color: "blue", value: 5 };
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .update({
+        hand: [
+          { kind: "number", color: "red", value: 3 },
+          { kind: "number", color: "yellow", value: 8 },
+          drawnCard, // playable because it matches color
+        ],
+      });
+
+    await playCard("game1", "player1", 2);
+
+    // Verify turn advanced to player2 after playing
+    gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player2");
+
+    // Verify card was played (hand back to 2 cards)
+    handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+    expect(handDoc.data()?.hand.length).toBe(2);
+
+    // Verify the drawn card is on discard pile
+    expect(gameDoc.data()?.state.discardPile).toContainEqual(drawnCard);
+  });
+
+  test("should allow passing turn after drawing unplayable card", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set up initial hand with no playable cards
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .set({
+        hand: [
+          { kind: "number", color: "yellow", value: 3 },
+          { kind: "number", color: "green", value: 8 },
+        ],
+      });
+
+    // Step 1: Draw a card
+    await drawCard("game1", "player1", 1);
+
+    // Verify turn stayed with player1
+    let gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player1");
+
+    // Step 2: Pass turn (player chose not to play or drawn card was unplayable)
+    await passTurn("game1", "player1");
+
+    // Verify turn advanced to player2
+    gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player2");
+
+    // Verify hand still has 3 cards (original 2 + drawn 1)
+    const handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+    expect(handDoc.data()?.hand.length).toBe(3);
+  });
+
+  test("should not allow passing during penalty draw", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set a draw penalty
+    await db.collection("games").doc("game1").update({
+      "state.mustDraw": 2,
+    });
+
+    // Player must draw penalty cards, cannot pass
+    await expect(passTurn("game1", "player1")).rejects.toThrow(
+      "must draw cards",
+    );
+  });
+
+  test("should advance turn automatically after penalty draw", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set up a Draw Two penalty
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({
+        "state.mustDraw": 2,
+        "state.discardPile": [
+          { kind: "special", color: "red", value: "draw2" },
+        ],
+      });
+
+    // Draw penalty cards
+    await drawCard("game1", "player1", 1);
+
+    // Verify turn automatically advanced to player2 (penalty draw)
+    const gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player2");
+
+    // Verify penalty was cleared
+    expect(gameDoc.data()?.state.mustDraw).toBe(0);
+  });
+
+  test("should increment turnsPlayed correctly for normal draw-then-pass", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    const initialPlayerDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .get();
+    const initialTurnsPlayed =
+      initialPlayerDoc.data()?.gameStats.turnsPlayed || 0;
+
+    // Normal draw (doesn't increment turnsPlayed)
+    await drawCard("game1", "player1", 1);
+
+    let playerDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .get();
+    expect(playerDoc.data()?.gameStats.turnsPlayed).toBe(initialTurnsPlayed);
+
+    // Pass turn (increments turnsPlayed)
+    await passTurn("game1", "player1");
+
+    playerDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .get();
+    expect(playerDoc.data()?.gameStats.turnsPlayed).toBe(
+      initialTurnsPlayed + 1,
+    );
+  });
+});
+
 describe("callUno integration tests", () => {
   test("should set hasCalledUno flag when calling for self", async () => {
     await createUser("player1", "Alice");
