@@ -183,6 +183,10 @@ export const DrawCardResponseSchema = z.object({
   cards: z.array(CardSchema),
 });
 
+export const PassTurnRequestSchema = z.object({
+  gameId: z.string(),
+});
+
 export const CallUnoRequestSchema = z.object({
   gameId: z.string(),
 });
@@ -213,6 +217,7 @@ export type PlayCardRequest = z.infer<typeof PlayCardRequestSchema>;
 export type PlayCardResponse = z.infer<typeof PlayCardResponseSchema>;
 export type DrawCardRequest = z.infer<typeof DrawCardRequestSchema>;
 export type DrawCardResponse = z.infer<typeof DrawCardResponseSchema>;
+export type PassTurnRequest = z.infer<typeof PassTurnRequestSchema>;
 export type CallUnoRequest = z.infer<typeof CallUnoRequestSchema>;
 export type CallUnoResponse = z.infer<typeof CallUnoResponseSchema>;
 export type HouseRule = z.infer<typeof HouseRuleSchema>;

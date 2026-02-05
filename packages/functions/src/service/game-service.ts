@@ -822,7 +822,8 @@ export const drawCard = async (
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
     const playerHands = await getPlayerHands(gameId, game.players, t);
-    const drawCount = game.state.mustDraw > 0 ? game.state.mustDraw : count;
+    const isPenaltyDraw = game.state.mustDraw > 0;
+    const drawCount = isPenaltyDraw ? game.state.mustDraw : count;
 
     const { drawnCards, deckSeed, drawPileCount, discardPile } =
       drawCardsFromDeck({
@@ -834,12 +835,11 @@ export const drawCard = async (
 
     const newHand = [...playerHand.hand, ...drawnCards];
     const now = new Date().toISOString();
-    const nextPlayerId = getNextPlayerId(
-      game.players,
-      currentIndex,
-      game.state.direction,
-      false,
-    );
+
+    // Only pass turn if this is a penalty draw
+    const nextPlayerId = isPenaltyDraw
+      ? getNextPlayerId(game.players, currentIndex, game.state.direction, false)
+      : playerId;
 
     t.update(gameRef(gameId), {
       "state.deckSeed": deckSeed,
@@ -857,11 +857,60 @@ export const drawCard = async (
       hasCalledUno: false,
       mustCallUno: false,
       "gameStats.cardsDrawn": player.gameStats.cardsDrawn + drawCount,
-      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
+      "gameStats.turnsPlayed":
+        player.gameStats.turnsPlayed + (isPenaltyDraw ? 1 : 0),
       lastActionAt: now,
     });
 
     return { cards: drawnCards };
+  });
+};
+
+export const passTurn = async (
+  gameId: string,
+  playerId: string,
+): Promise<void> => {
+  return await db.runTransaction(async (t) => {
+    const game = await getGame(gameId, t);
+
+    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
+      throw new Error(`Game ${gameId} is not in progress`);
+    }
+
+    const currentIndex = game.players.indexOf(playerId);
+    if (currentIndex < 0) {
+      throw new Error(`Player ${playerId} is not in game ${gameId}`);
+    }
+
+    if (game.state.currentTurnPlayerId !== playerId) {
+      throw new Error("Not your turn");
+    }
+
+    // Cannot pass if there's a draw penalty
+    if (game.state.mustDraw > 0) {
+      throw new Error("You must draw cards before passing");
+    }
+
+    const now = new Date().toISOString();
+    const nextPlayerId = getNextPlayerId(
+      game.players,
+      currentIndex,
+      game.state.direction,
+      false,
+    );
+    const player = await getGamePlayer(gameId, playerId, t);
+
+    t.update(gameRef(gameId), {
+      "state.currentTurnPlayerId": nextPlayerId,
+      lastActivityAt: now,
+    });
+
+    t.update(playerRef(gameId, playerId), {
+      hasCalledUno: false,
+      mustCallUno: false,
+      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
+      lastActionAt: now,
+    });
   });
 };
 

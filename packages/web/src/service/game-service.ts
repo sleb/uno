@@ -11,6 +11,7 @@ import {
   type GamePlayerData,
   GamePlayerSchema,
   GameSchema,
+  type PassTurnRequest,
   type PlayCardRequest,
   PlayCardResponseSchema,
   type PlayerHand,
@@ -94,6 +95,11 @@ const drawCardFunction = httpsCallable(functions, "drawCard");
 export const drawCard = async (request: DrawCardRequest) => {
   const response = await drawCardFunction(request);
   return DrawCardResponseSchema.parse(response.data);
+};
+
+const passTurnFunction = httpsCallable(functions, "passTurn");
+export const passTurn = async (request: PassTurnRequest): Promise<void> => {
+  await passTurnFunction(request);
 };
 
 const callUnoFunction = httpsCallable(functions, "callUno");

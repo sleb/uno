@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.FIREBASE_PROJECT_ID = "test-project";
 
-import { callUno, drawCard, playCard } from "./game-service";
+import { callUno, drawCard, passTurn, playCard } from "./game-service";
 
 // Use CommonJS require for admin
 const admin = require("firebase-admin");
@@ -235,7 +235,23 @@ describe("drawCard integration tests", () => {
     expect(gameDoc.data()?.state.mustDraw).toBe(0);
   });
 
-  test("should advance turn after drawing", async () => {
+  test("should advance turn after penalty draw", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set a draw penalty
+    await db.collection("games").doc("game1").update({
+      "state.mustDraw": 2,
+    });
+
+    await drawCard("game1", "player1", 1);
+
+    const gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player2");
+  });
+
+  test("should NOT advance turn after normal draw", async () => {
     await createUser("player1", "Alice");
     await createUser("player2", "Bob");
     await createInProgressGame("game1", ["player1", "player2"]);
@@ -243,7 +259,35 @@ describe("drawCard integration tests", () => {
     await drawCard("game1", "player1", 1);
 
     const gameDoc = await db.collection("games").doc("game1").get();
+    // Turn should stay with player1 so they can play the drawn card
+    expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player1");
+  });
+});
+
+describe("passTurn integration tests", () => {
+  test("should pass turn to next player", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    await passTurn("game1", "player1");
+
+    const gameDoc = await db.collection("games").doc("game1").get();
     expect(gameDoc.data()?.state.currentTurnPlayerId).toBe("player2");
+  });
+
+  test("should reject pass when draw penalty is active", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    await db.collection("games").doc("game1").update({
+      "state.mustDraw": 2,
+    });
+
+    await expect(passTurn("game1", "player1")).rejects.toThrow(
+      "must draw cards",
+    );
   });
 });
 

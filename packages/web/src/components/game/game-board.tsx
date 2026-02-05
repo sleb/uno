@@ -29,6 +29,7 @@ import {
   drawCard,
   onGamePlayersUpdate,
   onPlayerHandUpdate,
+  passTurn,
   playCard,
 } from "../../service/game-service";
 import { notifyError, notifyInfo, notifySuccess } from "../notifications";
@@ -44,6 +45,7 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [wildCardIndex, setWildCardIndex] = useState<number | null>(null);
   const [wildPickerOpened, wildPickerHandlers] = useDisclosure(false);
+  const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false);
 
   useEffect(() => {
     return onGamePlayersUpdate(game.id, (updatedPlayers) => {
@@ -62,6 +64,13 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
   }, [game.id, currentUserId]);
 
   const isMyTurn = game.state.currentTurnPlayerId === currentUserId;
+
+  // Reset hasDrawnThisTurn when turn changes
+  useEffect(() => {
+    if (isMyTurn) {
+      setHasDrawnThisTurn(false);
+    }
+  }, [isMyTurn]);
   const currentPlayer = players.find(
     (p) => p.id === game.state.currentTurnPlayerId,
   );
@@ -146,6 +155,25 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
     setIsProcessing(true);
     try {
       await drawCard({ gameId: game.id, count: 1 });
+      // Mark that we've drawn this turn (only for non-penalty draws)
+      if (game.state.mustDraw === 0) {
+        setHasDrawnThisTurn(true);
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePassTurn = async () => {
+    if (!isMyTurn || isProcessing) {
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await passTurn({ gameId: game.id });
+      setHasDrawnThisTurn(false);
     } catch (error) {
       notifyError(error);
     } finally {
@@ -416,16 +444,29 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
             {/* Actions */}
             <Stack align="center" gap="xs">
               <Group justify="center" gap="md">
-                <Button
-                  variant="outline"
-                  color="gray"
-                  onClick={handleDrawCard}
-                  disabled={!isMyTurn || isProcessing}
-                  loading={isProcessing && isMyTurn}
-                  data-testid="draw-pile-button"
-                >
-                  {drawLabel}
-                </Button>
+                {!hasDrawnThisTurn || isDrawRequired ? (
+                  <Button
+                    variant="outline"
+                    color="gray"
+                    onClick={handleDrawCard}
+                    disabled={!isMyTurn || isProcessing}
+                    loading={isProcessing && isMyTurn}
+                    data-testid="draw-pile-button"
+                  >
+                    {drawLabel}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    color="blue"
+                    onClick={handlePassTurn}
+                    disabled={!isMyTurn || isProcessing}
+                    loading={isProcessing && isMyTurn}
+                    data-testid="pass-turn-button"
+                  >
+                    Pass Turn
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   color="unoYellow"
@@ -438,7 +479,9 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
               </Group>
               {isMyTurn ? (
                 <Text size="sm" c="dimmed">
-                  Select a playable card to play.
+                  {hasDrawnThisTurn && !isDrawRequired
+                    ? "Play the drawn card or pass your turn."
+                    : "Select a playable card to play."}
                 </Text>
               ) : (
                 <Text size="sm" c="dimmed">
