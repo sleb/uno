@@ -1,6 +1,6 @@
 import { type PlayCardRequest, PlayCardRequestSchema } from "@uno/shared";
 import { type CallableRequest, HttpsError } from "firebase-functions/https";
-import { debug, error } from "firebase-functions/logger";
+import { error } from "firebase-functions/logger";
 import z from "zod";
 import { playCard as _playCard } from "./service/game-service";
 
