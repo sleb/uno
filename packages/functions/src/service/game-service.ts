@@ -20,15 +20,19 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
-import { applyCardEffect, getNextPlayerId } from "./card-validation";
+import { getNextPlayerId, isCardPlayable } from "./card-validation";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
 import type { RuleContext } from "./rules";
-import { applyRulePhase, createDefaultRulePipeline } from "./rules";
+import {
+  applyFinalizePhase,
+  applyRulePhase,
+  createDefaultRulePipeline,
+} from "./rules";
 import { calculateHandScore } from "./score-utils";
 
 const DECK_SIZE = 108;
 
-const getDoc = async (
+export const getDoc = async (
   ref: DocumentReference,
   t?: Transaction,
 ): Promise<DocumentSnapshot> => {
@@ -43,7 +47,7 @@ const playerHandsRef = (gameId: string) =>
   gamesRef().doc(gameId).collection("playerHands");
 
 const gameRef = (gameId: string) => gamesRef().doc(gameId);
-const userRef = (userId: string) => usersRef().doc(userId);
+export const userRef = (userId: string) => usersRef().doc(userId);
 const playerRef = (gameId: string, userId: string) =>
   playersRef(gameId).doc(userId);
 const playerHandRef = (gameId: string, userId: string) =>
@@ -98,7 +102,7 @@ export const dealCards = async (
   return cards;
 };
 
-const getGamePlayer = async (
+export const getGamePlayer = async (
   gameId: string,
   playerId: string,
   t?: Transaction,
@@ -126,7 +130,7 @@ const getPlayerHand = async (
   return PlayerHandDataSchema.parse(snapshot.data());
 };
 
-const getPlayerHands = async (
+export const getPlayerHands = async (
   gameId: string,
   playerIds: string[],
   t?: Transaction,
@@ -649,11 +653,8 @@ export const playCard = async (
   return await db.runTransaction(async (t) => {
     // IMPORTANT: Do ALL reads before ANY writes (Firestore transaction requirement)
     const game = await getGame(gameId, t);
-    const currentIndex = game.players.indexOf(playerId);
-
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
-    const { currentColor, mustDraw } = game.state;
 
     const pipeline = createDefaultRulePipeline();
     const ruleContext: RuleContext = {
@@ -667,107 +668,60 @@ export const playCard = async (
       transaction: t,
       now: new Date().toISOString(),
     };
+
+    // Execute rule phases
     applyRulePhase(pipeline, "pre-validate", ruleContext);
     applyRulePhase(pipeline, "validate", ruleContext);
+    const applyResult = applyRulePhase(pipeline, "apply", ruleContext);
+    const finalizeResult = await applyFinalizePhase(pipeline, ruleContext);
 
-    const playedCard = playerHand.hand[cardIndex];
-    if (!playedCard) {
-      throw new Error("Invalid card index");
-    }
+    // Collect all effects
+    const allEffects = [...applyResult.effects, ...finalizeResult.effects];
 
-    const newHand = playerHand.hand.filter((_, index) => index !== cardIndex);
-    const updatedDiscardPile = [...game.state.discardPile, playedCard];
-    const cardEffects = applyCardEffect(
-      playedCard,
-      game.state.direction,
-      mustDraw,
-    );
-    const reverseSkip =
-      playedCard.kind === "special" &&
-      playedCard.value === "reverse" &&
-      game.players.length === 2;
-    const skipNext = cardEffects.skipNext || reverseSkip;
-    const nextPlayerId = getNextPlayerId(
-      game.players,
-      currentIndex,
-      cardEffects.direction,
-      skipNext,
-    );
-    const isWinner = newHand.length === 0;
-    const now = new Date().toISOString();
+    // Apply effects to Firestore
+    const gameUpdates: Record<string, unknown> = {};
+    const playerUpdates: Record<string, Record<string, unknown>> = {};
+    const handUpdates: Record<string, Card[]> = {};
+    let winnerId: string | undefined;
+    let preFetchedData: any;
 
-    // Pre-fetch all data needed for finalizeGame BEFORE any writes
-    let preFetchedFinalizeData:
-      | {
-          game: GameData;
-          playerHands: Record<string, PlayerHandData>;
-          gamePlayers: Record<string, GamePlayerData>;
-          userDataMap: Record<string, UserData>;
+    for (const effect of allEffects) {
+      if (effect.type === "update-game") {
+        Object.assign(gameUpdates, effect.updates);
+      } else if (effect.type === "update-player") {
+        if (!playerUpdates[effect.playerId]) {
+          playerUpdates[effect.playerId] = {};
         }
-      | undefined;
-
-    if (isWinner) {
-      // Fetch all data finalizeGame will need
-      const playerIds = game.players;
-      const playerHands = await getPlayerHands(gameId, playerIds, t);
-      const gamePlayers: Record<string, GamePlayerData> = {};
-      const userDataMap: Record<string, UserData> = {};
-
-      for (const playerId of playerIds) {
-        gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);
+        Object.assign(playerUpdates[effect.playerId], effect.updates);
+      } else if (effect.type === "update-hand") {
+        handUpdates[effect.playerId] = effect.hand;
+      } else if (effect.type === "set-winner") {
+        winnerId = effect.winnerId;
+        preFetchedData = effect.preFetchedData;
       }
-
-      for (const playerId of playerIds) {
-        const userSnap = await getDoc(userRef(playerId), t);
-        if (userSnap.exists) {
-          userDataMap[playerId] = UserDataSchema.parse(userSnap.data());
-        }
-      }
-
-      // Update the current player's hand in the pre-fetched data
-      playerHands[playerId] = { hand: newHand };
-
-      preFetchedFinalizeData = {
-        game,
-        playerHands,
-        gamePlayers,
-        userDataMap,
-      };
     }
 
-    // NOW we can do writes
-    t.update(gameRef(gameId), {
-      "state.discardPile": updatedDiscardPile,
-      "state.currentTurnPlayerId": isWinner ? null : nextPlayerId,
-      "state.direction": cardEffects.direction,
-      "state.mustDraw": cardEffects.mustDraw,
-      "state.currentColor": playedCard.kind === "wild" ? chosenColor : null,
-      "state.status": isWinner
-        ? GAME_STATUSES.COMPLETED
-        : GAME_STATUSES.IN_PROGRESS,
-      lastActivityAt: now,
-    });
-
-    t.update(playerHandRef(gameId, playerId), { hand: newHand });
-    t.update(playerRef(gameId, playerId), {
-      cardCount: newHand.length,
-      status: isWinner ? "winner" : "active",
-      hasCalledUno: false,
-      mustCallUno: newHand.length === 1,
-      "gameStats.cardsPlayed": player.gameStats.cardsPlayed + 1,
-      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
-      "gameStats.specialCardsPlayed":
-        player.gameStats.specialCardsPlayed +
-        (playedCard.kind === "number" ? 0 : 1),
-      lastActionAt: now,
-    });
-
-    // Finalize game if there's a winner (calculate scores, update stats)
-    if (isWinner && preFetchedFinalizeData) {
-      await finalizeGame(gameId, playerId, t, preFetchedFinalizeData);
+    // Write to Firestore
+    if (Object.keys(gameUpdates).length > 0) {
+      t.update(gameRef(gameId), gameUpdates);
     }
 
-    return isWinner ? { winner: playerId } : {};
+    for (const [playerId, updates] of Object.entries(playerUpdates)) {
+      if (Object.keys(updates).length > 0) {
+        t.update(playerRef(gameId, playerId), updates);
+      }
+    }
+
+    for (const [playerId, hand] of Object.entries(handUpdates)) {
+      t.update(playerHandRef(gameId, playerId), { hand });
+    }
+
+    // Finalize game if there's a winner
+    if (winnerId && preFetchedData) {
+      await finalizeGame(gameId, winnerId, t, preFetchedData);
+    }
+
+    return winnerId ? { winner: winnerId } : {};
   });
 };
 

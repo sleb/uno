@@ -1,32 +1,40 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 
 // IMPORTANT: Set emulator env vars BEFORE importing game-service
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.FIREBASE_PROJECT_ID = "test-project";
 
+import {
+  assertEmulatorAvailable,
+  cleanupTestData,
+  getFirebaseForTest,
+} from "../__test-helpers__/firebase-test";
 import { drawCard, passTurn, playCard } from "./game-service";
-
-// Use CommonJS require for admin
-const admin = require("firebase-admin");
 
 // Test setup with Firebase Admin
 let app: import("firebase-admin").app.App;
 let db: FirebaseFirestore.Firestore;
 
 beforeEach(async () => {
-  app = admin.app();
-  db = admin.firestore(app);
+  const firebase = getFirebaseForTest();
+  app = firebase.app;
+  db = firebase.db;
+});
+
+beforeAll(async () => {
+  const firebase = getFirebaseForTest();
+  await assertEmulatorAvailable(firebase.db);
 });
 
 afterEach(async () => {
-  // Clean up Firestore data between tests
-  const collections = await db.listCollections();
-  for (const collection of collections) {
-    const docs = await collection.listDocuments();
-    for (const doc of docs) {
-      await doc.delete();
-    }
-  }
+  await cleanupTestData(db);
 });
 
 const setupGame = async () => {

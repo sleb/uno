@@ -14,3 +14,28 @@ export function getFirebaseForTest() {
   const db = admin.firestore(app);
   return { app, db, admin };
 }
+
+export async function assertEmulatorAvailable(
+  db: FirebaseFirestore.Firestore,
+  timeoutMs = 2000,
+): Promise<void> {
+  const timeout = new Promise<never>((_, reject) => {
+    const timer = setTimeout(() => {
+      clearTimeout(timer);
+      reject(
+        new Error(
+          "Firestore emulator is not responding. Start it with `firebase emulators:start`.",
+        ),
+      );
+    }, timeoutMs);
+  });
+
+  await Promise.race([db.listCollections(), timeout]);
+}
+
+export async function cleanupTestData(
+  db: FirebaseFirestore.Firestore,
+): Promise<void> {
+  await db.recursiveDelete(db.collection("games"));
+  await db.recursiveDelete(db.collection("users"));
+}

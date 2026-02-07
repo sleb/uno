@@ -1,34 +1,41 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 
 // IMPORTANT: Set emulator env vars BEFORE importing game-service
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.FIREBASE_PROJECT_ID = "test-project";
 
 import type { Card, HouseRule } from "@uno/shared";
+import {
+  assertEmulatorAvailable,
+  cleanupTestData,
+  getFirebaseForTest,
+} from "../__test-helpers__/firebase-test";
 import { drawCard, playCard } from "./game-service";
-
-// Use CommonJS require for admin
-const admin = require("firebase-admin");
 
 // Test setup with Firebase Admin
 let app: import("firebase-admin").app.App;
 let db: FirebaseFirestore.Firestore;
 
 beforeEach(async () => {
-  // Get the already-initialized app from game-service
-  app = admin.app();
-  db = admin.firestore(app);
+  const firebase = getFirebaseForTest();
+  app = firebase.app;
+  db = firebase.db;
+});
+
+beforeAll(async () => {
+  const firebase = getFirebaseForTest();
+  await assertEmulatorAvailable(firebase.db);
 });
 
 afterEach(async () => {
-  // Clean up Firestore data between tests
-  const collections = await db.listCollections();
-  for (const collection of collections) {
-    const docs = await collection.listDocuments();
-    for (const doc of docs) {
-      await doc.delete();
-    }
-  }
+  await cleanupTestData(db);
 });
 
 /**
@@ -319,7 +326,10 @@ describe("House Rule: Stacking", () => {
       .collection("playerHands")
       .doc("player2")
       .update({
-        hand: [{ kind: "special", color: "blue", value: "draw2" }],
+        hand: [
+          { kind: "special", color: "blue", value: "draw2" },
+          { kind: "number", color: "blue", value: 4 },
+        ],
       });
 
     await playCard("game1", "player2", 0);
@@ -334,7 +344,10 @@ describe("House Rule: Stacking", () => {
       .collection("playerHands")
       .doc("player3")
       .update({
-        hand: [{ kind: "special", color: "green", value: "draw2" }],
+        hand: [
+          { kind: "special", color: "green", value: "draw2" },
+          { kind: "number", color: "green", value: 6 },
+        ],
       });
 
     await playCard("game1", "player3", 0);
@@ -724,7 +737,9 @@ describe("House Rule: Draw to Match", () => {
 
     // Play the card that was drawn
     if (playableIndex >= 0) {
-      await playCard("game1", "player1", playableIndex);
+      const chosenCard = hand[playableIndex];
+      const chosenColor = chosenCard?.kind === "wild" ? "red" : undefined;
+      await playCard("game1", "player1", playableIndex, chosenColor);
 
       // Verify it was played
       const gameDoc = await db.collection("games").doc("game1").get();

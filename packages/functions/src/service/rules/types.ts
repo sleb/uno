@@ -37,42 +37,38 @@ export type RuleContext = {
 
 export type UpdateGameEffect = {
   type: "update-game";
-  payload: {
-    updates: Record<string, unknown>;
-  };
+  updates: Record<string, unknown>;
 };
 
 export type UpdatePlayerEffect = {
   type: "update-player";
-  payload: {
-    playerId: string;
-    updates: Record<string, unknown>;
-  };
+  playerId: string;
+  updates: Record<string, unknown>;
 };
 
 export type UpdateHandEffect = {
   type: "update-hand";
-  payload: {
-    playerId: string;
-    hand: Card[];
-  };
+  playerId: string;
+  hand: Card[];
 };
 
 export type SetWinnerEffect = {
   type: "set-winner";
-  payload: {
-    winnerId: string;
+  winnerId: string;
+  preFetchedData: {
+    game: GameData;
+    playerHands: Record<string, PlayerHandData>;
+    gamePlayers: Record<string, GamePlayerData>;
+    userDataMap: Record<string, any>;
   };
 };
 
 export type EmitEventsEffect = {
   type: "emit-events";
-  payload: {
-    events: Array<{
-      type: string;
-      payload?: Record<string, unknown>;
-    }>;
-  };
+  events: Array<{
+    type: string;
+    payload?: Record<string, unknown>;
+  }>;
 };
 
 export type RuleEffect =
@@ -84,12 +80,14 @@ export type RuleEffect =
 
 export type RuleResult = {
   effects: RuleEffect[];
-  cardsDrawn?: Card[];
+  cardsDrawn: Card[];
 };
 
 export type Rule = {
   name: string;
+  phase: "pre-validate" | "validate" | "apply" | "finalize";
   canHandle: (context: RuleContext) => boolean;
   validate?: (context: RuleContext) => void;
   apply: (context: RuleContext) => RuleResult;
+  finalize?: (context: RuleContext) => Promise<RuleResult>;
 };
