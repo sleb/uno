@@ -7,5 +7,11 @@ export type TurnPhase =
 export type TurnTransition = {
   from: TurnPhase;
   to: TurnPhase;
-  action: "play" | "draw" | "pass" | "resolve";
+  action:
+    | "play"
+    | "draw-optional"
+    | "draw-penalty"
+    | "draw-to-match"
+    | "pass"
+    | "resolve";
 };
