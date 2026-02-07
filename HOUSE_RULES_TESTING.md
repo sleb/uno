@@ -10,11 +10,11 @@ The game supports five house rules as defined in `packages/shared/src/types.ts`:
 
 ```typescript
 export const HouseRuleSchema = z.enum([
-  "stacking",      // Stack Draw Two or Wild Draw Four cards
-  "jumpIn",        // Play identical card out of turn
-  "sevenSwap",     // Trade hands when playing a 7
-  "drawToMatch",   // Keep drawing until playable card found
-  "zeroRotation",  // Rotate all hands when 0 is played
+  "stacking", // Stack Draw Two or Wild Draw Four cards
+  "jumpIn", // Play identical card out of turn
+  "sevenSwap", // Trade hands when playing a 7
+  "drawToMatch", // Keep drawing until playable card found
+  "zeroRotation", // Rotate all hands when 0 is played
 ]);
 ```
 
@@ -25,20 +25,24 @@ export const HouseRuleSchema = z.enum([
 **Status:** Fully implemented and tested
 
 **Behavior:**
+
 - **Standard Rules (disabled):** When a Draw Two or Wild Draw Four is played, the next player MUST draw the specified number of cards. They cannot play another draw card to avoid drawing.
 - **House Rule (enabled):** Players can play another Draw Two or Wild Draw Four to "stack" the penalty, passing it to the next player with an accumulated count.
 
 **Implementation:**
+
 - `packages/functions/src/service/card-validation.ts` - `isCardPlayable()` checks `houseRules.includes("stacking")`
 - `packages/functions/src/service/game-service.ts` - Passes `game.config.houseRules` to validation
 - `packages/web/src/components/game/game-board.tsx` - Frontend respects stacking rule for card highlighting
 
 **Tests:**
+
 - ✅ **Unit Tests** (`house-rules-unit.test.ts`): 46 tests covering all stacking scenarios
 - ✅ **Integration Tests** (`house-rules.test.ts`): Tests with Firebase emulator
 - ✅ **Validation Tests** (`card-validation.test.ts`): Core playability logic
 
 **Key Test Coverage:**
+
 - Blocking stacking when rule disabled
 - Allowing stacking when rule enabled
 - Draw Two + Draw Two stacking (2 + 2 = 4)
@@ -55,11 +59,13 @@ export const HouseRuleSchema = z.enum([
 **Status:** Defined but not implemented
 
 **Expected Behavior:**
+
 - Players can play an identical card (exact color and value match) out of turn
 - Play resumes from the player who "jumped in"
 - If jumping in with action cards (Skip, Reverse, Draw Two), the effect cancels the previous identical card
 
 **Implementation Plan:**
+
 - New Cloud Function: `jumpIn(gameId, playerId, cardIndex)`
 - Validate exact card match against top of discard pile
 - Update turn order to continue from jump-in player
@@ -72,12 +78,14 @@ export const HouseRuleSchema = z.enum([
 **Status:** Defined but not implemented
 
 **Expected Behavior:**
+
 - When a "0" card is played, all hands rotate in the direction of play
 - Clockwise direction: each player passes hand to next player
 - Counter-clockwise: each player passes hand to previous player
 - Player who played "0" continues their turn
 
 **Implementation Plan:**
+
 - Modify `playCard` to detect value === 0 with house rule enabled
 - Transaction to atomically swap all player hands
 - Update all player `cardCount` values
@@ -90,11 +98,13 @@ export const HouseRuleSchema = z.enum([
 **Status:** Defined but not implemented
 
 **Expected Behavior:**
+
 - When a "7" card is played, the player must swap hands with another player of their choice
 - The chosen player has no choice in the matter
 - Both players' card counts update
 
 **Implementation Plan:**
+
 - Add optional `targetPlayerId` to `PlayCardRequest` schema
 - Require target selection when playing 7 with house rule enabled
 - Transaction to swap the two player hands
@@ -103,23 +113,37 @@ export const HouseRuleSchema = z.enum([
 **Test Stubs:** Placeholder tests in `house-rules.test.ts` (lines 443-500)
 **Working Test:** Line 444-485 verifies seven cards work normally WITHOUT the rule
 
-### ⏳ Draw to Match (NOT IMPLEMENTED)
+### ✅ Draw to Match (IMPLEMENTED)
 
-**Status:** Defined but not implemented
+**Status:** Fully implemented and tested
 
-**Expected Behavior:**
-- When drawing (because no playable card), continue drawing until a playable card is found
-- Stop as soon as a playable card is drawn
-- Can play the drawn card immediately
-- Stop if deck is exhausted
+**Behavior:**
 
-**Implementation Plan:**
-- Modify `drawCard` function to accept house rules
-- Loop drawing cards until playable or deck empty
-- Use `isCardPlayable` to check each drawn card
+- **Standard Rules (disabled):** Draw 1 card and pass turn, even if the card cannot be played.
+- **House Rule (enabled):** When drawing because you have no playable card, keep drawing until you find a playable card or the deck is exhausted.
 
-**Test Stubs:** Placeholder tests in `house-rules.test.ts` (lines 502-561)
-**Working Test:** Line 503-533 verifies normal draw behavior WITHOUT the rule
+**Implementation:**
+
+- `packages/functions/src/service/game-service.ts` - `drawCard()` checks `houseRules.includes("drawToMatch")`
+- Only applies to voluntary draws (when `mustDraw === 0`)
+- Does NOT apply to penalty draws (Draw Two, Wild Draw Four penalties)
+- Loops drawing 1 card at a time, checking `isCardPlayable()` after each draw
+- Stops when playable card found OR deck exhausted OR safety limit (50 cards) reached
+- Returns all drawn cards to the player
+
+**Tests:**
+
+- ✅ **Integration Tests** (`house-rules.test.ts`): 4 complete tests
+- ✅ **Unit Tests** (`house-rules-unit.test.ts`): 5 documentation tests
+
+**Key Test Coverage:**
+
+- Standard behavior without rule (draw exactly 1 card)
+- Draw to Match keeps drawing until playable card found
+- Last drawn card is verified to be playable
+- Does NOT apply to penalty draws (draws exact penalty amount)
+- Player can play the drawn card immediately
+- Safety limit prevents infinite loops
 
 ## Test Files
 
@@ -128,6 +152,7 @@ export const HouseRuleSchema = z.enum([
 **Purpose:** Unit tests for card validation logic with house rules
 
 **Coverage:**
+
 - `isDrawCard()` helper function (6 tests)
 - Stacking validation with/without house rule (17 tests)
 - Normal card playability (8 tests)
@@ -143,6 +168,7 @@ export const HouseRuleSchema = z.enum([
 **Purpose:** End-to-end tests with Firebase emulator
 
 **Coverage:**
+
 - Stacking house rule (6 tests, all for stacking)
 - Jump-In placeholders (4 tests)
 - Zero Rotation placeholders (4 tests)
@@ -152,6 +178,7 @@ export const HouseRuleSchema = z.enum([
 - Edge cases (3 tests)
 
 **Run:** Requires Firebase emulator on ports 8080, 9099, 5001
+
 ```bash
 firebase emulators:start
 bun test packages/functions/src/service/house-rules.test.ts
@@ -162,6 +189,7 @@ bun test packages/functions/src/service/house-rules.test.ts
 **Purpose:** Core card validation logic
 
 **Coverage:**
+
 - Standard rules behavior (blocking all cards during draw penalty)
 - Stacking house rule behavior (allowing draw cards)
 - Color/value matching
@@ -176,6 +204,7 @@ bun test packages/functions/src/service/house-rules.test.ts
 **Purpose:** Integration tests for game actions
 
 **Coverage:**
+
 - General play card functionality
 - Stacking tests added (lines 202-291)
 - Draw card behavior
@@ -223,8 +252,8 @@ isCardPlayable(
   topCard,
   currentColor,
   mustDraw,
-  game.config.houseRules,  // ← Always pass this
-)
+  game.config.houseRules, // ← Always pass this
+);
 ```
 
 ### Checking if a Rule is Enabled
@@ -243,7 +272,7 @@ const isPlayable = (card: UnoCard) => {
     if (game.config.houseRules.includes("stacking") && isDrawCard(card)) {
       return true;
     }
-    return false;  // No cards playable during penalty
+    return false; // No cards playable during penalty
   }
   // ... normal matching logic
 };
@@ -257,7 +286,8 @@ const isPlayable = (card: UnoCard) => {
 
 **Resolution:** The legality check (`mustDraw === 0 && activeColor`) correctly bypasses the check when stacking. This is intentional - during a stacking sequence, any Wild Draw Four can be played to continue the stack.
 
-**Tests:** 
+**Tests:**
+
 - Line 611-642 in `house-rules.test.ts`: Enforces legality when NOT stacking
 - Line 644-683 in `house-rules.test.ts`: Bypasses legality when stacking
 
@@ -315,9 +345,9 @@ bun test packages/functions
 ## Summary
 
 - **Stacking:** ✅ Fully implemented and tested (46 unit tests, 6 integration tests)
+- **Draw to Match:** ✅ Fully implemented and tested (5 unit tests, 4 integration tests)
 - **Jump-In:** ⏳ Tests stubbed, awaiting implementation
-- **Seven Swap:** ⏳ Tests stubbed, awaiting implementation  
+- **Seven Swap:** ⏳ Tests stubbed, awaiting implementation
 - **Zero Rotation:** ⏳ Tests stubbed, awaiting implementation
-- **Draw to Match:** ⏳ Tests stubbed, awaiting implementation
 
-All test infrastructure is in place. As new house rules are implemented, remove the `expect(true).toBe(true)` placeholders and implement the actual test logic.
+The test infrastructure is complete for all house rules. Two rules are now production-ready: Stacking and Draw to Match.

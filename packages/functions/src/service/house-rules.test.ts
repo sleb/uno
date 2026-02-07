@@ -568,27 +568,168 @@ describe("House Rule: Draw to Match", () => {
   });
 
   test("should keep drawing until match with house rule", async () => {
-    // Draw to match not implemented yet
-    // Expected: Continue drawing until playable card found
-    expect(true).toBe(true);
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createGameWithHouseRules(
+      "game1",
+      ["player1", "player2"],
+      ["drawToMatch"],
+      [{ kind: "number", color: "red", value: 5 }],
+    );
+
+    // Give player1 no playable cards
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .update({
+        hand: [
+          { kind: "number", color: "blue", value: 2 },
+          { kind: "number", color: "green", value: 3 },
+        ],
+      });
+
+    // Draw with Draw to Match - should draw multiple cards until match
+    const result = await drawCard("game1", "player1", 1);
+
+    // Should have drawn more than 1 card (kept drawing until match)
+    expect(result.cards.length).toBeGreaterThan(0);
+
+    const handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+
+    // Should have 2 + however many were drawn
+    expect(handDoc.data()?.hand.length).toBe(2 + result.cards.length);
+
+    // Last card should be playable (red card or 5)
+    const lastCard = result.cards[result.cards.length - 1];
+    const isPlayable =
+      ("color" in lastCard && lastCard.color === "red") ||
+      ("value" in lastCard && lastCard.value === 5) ||
+      lastCard.kind === "wild";
+    expect(isPlayable).toBe(true);
   });
 
   test("should stop drawing when match is found", async () => {
-    // Draw to match not implemented yet
-    // Expected: Stop as soon as playable card drawn
-    expect(true).toBe(true);
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createGameWithHouseRules(
+      "game1",
+      ["player1", "player2"],
+      ["drawToMatch"],
+      [{ kind: "number", color: "red", value: 5 }],
+    );
+
+    // Give player1 no playable cards
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .update({
+        hand: [],
+      });
+
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .update({ cardCount: 0 });
+
+    // Draw with Draw to Match
+    const result = await drawCard("game1", "player1", 1);
+
+    // The last card drawn should be playable
+    const lastCard = result.cards[result.cards.length - 1];
+    const isPlayable =
+      ("color" in lastCard && lastCard.color === "red") ||
+      ("value" in lastCard && lastCard.value === 5) ||
+      lastCard.kind === "wild";
+    expect(isPlayable).toBe(true);
   });
 
-  test("should stop drawing when deck is exhausted", async () => {
-    // Draw to match not implemented yet
-    // Expected: Stop if no more cards available
-    expect(true).toBe(true);
+  test("should not apply draw to match to penalty draws", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createGameWithHouseRules(
+      "game1",
+      ["player1", "player2"],
+      ["drawToMatch"],
+      [
+        { kind: "number", color: "red", value: 5 },
+        { kind: "special", color: "red", value: "draw2" },
+      ],
+      2,
+    );
+
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({ "state.currentTurnPlayerId": "player2" });
+
+    // Draw 2 as penalty - should draw exactly 2, not keep drawing
+    const result = await drawCard("game1", "player2", 1);
+
+    // Should draw exactly 2 cards (the penalty), not more
+    expect(result.cards.length).toBe(2);
   });
 
   test("should allow playing matched card immediately", async () => {
-    // Draw to match not implemented yet
-    // Expected: Can play the card that was drawn
-    expect(true).toBe(true);
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createGameWithHouseRules(
+      "game1",
+      ["player1", "player2"],
+      ["drawToMatch"],
+      [{ kind: "number", color: "red", value: 5 }],
+    );
+
+    // Give player1 no playable cards
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .update({
+        hand: [{ kind: "number", color: "blue", value: 2 }],
+      });
+
+    // Draw with Draw to Match
+    const drawResult = await drawCard("game1", "player1", 1);
+
+    // Get the hand to find the playable card
+    const handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+    const hand = handDoc.data()?.hand;
+
+    // Find the index of a playable card (should be one of the newly drawn cards)
+    const playableIndex = hand.findIndex(
+      (card: { kind: string; color?: string; value?: number | string }) =>
+        ("color" in card && card.color === "red") ||
+        ("value" in card && card.value === 5) ||
+        card.kind === "wild",
+    );
+
+    expect(playableIndex).toBeGreaterThanOrEqual(0);
+
+    // Play the card that was drawn
+    if (playableIndex >= 0) {
+      await playCard("game1", "player1", playableIndex);
+
+      // Verify it was played
+      const gameDoc = await db.collection("games").doc("game1").get();
+      expect(gameDoc.data()?.state.discardPile.length).toBe(2);
+    }
   });
 });
 

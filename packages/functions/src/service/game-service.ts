@@ -831,15 +831,97 @@ export const drawCard = async (
     const player = await getGamePlayer(gameId, playerId, t);
     const playerHands = await getPlayerHands(gameId, game.players, t);
     const isPenaltyDraw = game.state.mustDraw > 0;
-    const drawCount = isPenaltyDraw ? game.state.mustDraw : count;
+    const isDrawToMatchEnabled =
+      !isPenaltyDraw && game.config.houseRules.includes("drawToMatch");
 
-    const { drawnCards, deckSeed, drawPileCount, discardPile } =
-      drawCardsFromDeck({
-        seed: game.state.deckSeed,
-        discardPile: game.state.discardPile,
-        playerHands,
-        count: drawCount,
+    let drawnCards: Card[] = [];
+    let deckSeed = game.state.deckSeed;
+    let drawPileCount = game.state.drawPileCount;
+    let discardPile = game.state.discardPile;
+    let currentPlayerHands = playerHands;
+
+    if (isPenaltyDraw) {
+      // Penalty draw: draw exact count
+      const result = drawCardsFromDeck({
+        seed: deckSeed,
+        discardPile,
+        playerHands: currentPlayerHands,
+        count: game.state.mustDraw,
       });
+      drawnCards = result.drawnCards;
+      deckSeed = result.deckSeed;
+      drawPileCount = result.drawPileCount;
+      discardPile = result.discardPile;
+    } else if (isDrawToMatchEnabled) {
+      // Draw to Match: keep drawing until playable card found or deck exhausted
+      const topCard = getTopCard(game.state.discardPile);
+      const maxDraws = 50; // Safety limit to prevent infinite loops
+      let drawAttempts = 0;
+
+      while (drawAttempts < maxDraws) {
+        let cardsToDrawThisTime: Card[];
+        try {
+          const result = drawCardsFromDeck({
+            seed: deckSeed,
+            discardPile,
+            playerHands: currentPlayerHands,
+            count: 1,
+          });
+          cardsToDrawThisTime = result.drawnCards;
+          deckSeed = result.deckSeed;
+          drawPileCount = result.drawPileCount;
+          discardPile = result.discardPile;
+
+          // Update player hands for next iteration
+          const currentHand = currentPlayerHands[playerId];
+          if (!currentHand) {
+            throw new Error("Player hand not found");
+          }
+          currentPlayerHands = {
+            ...currentPlayerHands,
+            [playerId]: {
+              hand: [...currentHand.hand, ...cardsToDrawThisTime],
+            },
+          };
+        } catch {
+          // Deck exhausted - stop drawing
+          break;
+        }
+
+        drawnCards.push(...cardsToDrawThisTime);
+        drawAttempts++;
+
+        // Check if the last drawn card is playable
+        const lastDrawn = cardsToDrawThisTime[0];
+        if (!lastDrawn) {
+          break;
+        }
+        if (
+          isCardPlayable(
+            lastDrawn,
+            topCard,
+            game.state.currentColor,
+            0,
+            game.config.houseRules,
+          )
+        ) {
+          // Found a playable card - stop drawing
+          break;
+        }
+      }
+    } else {
+      // Normal draw: draw requested count
+      const result = drawCardsFromDeck({
+        seed: deckSeed,
+        discardPile,
+        playerHands: currentPlayerHands,
+        count,
+      });
+      drawnCards = result.drawnCards;
+      deckSeed = result.deckSeed;
+      drawPileCount = result.drawPileCount;
+      discardPile = result.discardPile;
+    }
 
     const newHand = [...playerHand.hand, ...drawnCards];
     const now = new Date().toISOString();
@@ -864,7 +946,7 @@ export const drawCard = async (
       status: "active",
       hasCalledUno: false,
       mustCallUno: false,
-      "gameStats.cardsDrawn": player.gameStats.cardsDrawn + drawCount,
+      "gameStats.cardsDrawn": player.gameStats.cardsDrawn + drawnCards.length,
       "gameStats.turnsPlayed":
         player.gameStats.turnsPlayed + (isPenaltyDraw ? 1 : 0),
       lastActionAt: now,
