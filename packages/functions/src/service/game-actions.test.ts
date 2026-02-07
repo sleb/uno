@@ -199,6 +199,94 @@ describe("playCard integration tests", () => {
     const gameDoc = await db.collection("games").doc("game1").get();
     expect(gameDoc.data()?.state.status).toBe("completed");
   });
+
+  test("should block Wild Draw Four stacking with standard rules", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Set game state: Wild Draw Four was just played
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({
+        "state.discardPile": [
+          { kind: "number", color: "red", value: 5 },
+          { kind: "wild", value: "wild_draw4" },
+        ],
+        "state.currentColor": "blue",
+        "state.mustDraw": 4,
+        "state.currentTurnPlayerId": "player2",
+      });
+
+    // Give player2 a Wild Draw Four card
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player2")
+      .update({
+        hand: [
+          { kind: "wild", value: "wild_draw4" },
+          { kind: "number", color: "blue", value: 3 },
+          { kind: "number", color: "red", value: 7 },
+        ],
+      });
+
+    // Attempt to play Wild Draw Four (stacking) - should fail with standard rules
+    await expect(playCard("game1", "player2", 0, "green")).rejects.toThrow(
+      "Card cannot be played",
+    );
+
+    // Verify game state unchanged
+    const gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.mustDraw).toBe(4);
+    expect(gameDoc.data()?.state.discardPile.length).toBe(2);
+  });
+
+  test("should allow Wild Draw Four stacking with stacking house rule", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createInProgressGame("game1", ["player1", "player2"]);
+
+    // Enable stacking house rule
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({
+        "config.houseRules": ["stacking"],
+        "state.discardPile": [
+          { kind: "number", color: "red", value: 5 },
+          { kind: "wild", value: "wild_draw4" },
+        ],
+        "state.currentColor": "blue",
+        "state.mustDraw": 4,
+        "state.currentTurnPlayerId": "player2",
+      });
+
+    // Give player2 a Wild Draw Four card
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player2")
+      .update({
+        hand: [
+          { kind: "wild", value: "wild_draw4" },
+          { kind: "number", color: "blue", value: 3 },
+          { kind: "number", color: "red", value: 7 },
+        ],
+      });
+
+    // Play Wild Draw Four (stacking) - should succeed with house rule
+    await playCard("game1", "player2", 0, "green");
+
+    // Verify stacking worked
+    const gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.mustDraw).toBe(8); // 4 + 4
+    expect(gameDoc.data()?.state.discardPile.length).toBe(3);
+    expect(gameDoc.data()?.state.currentColor).toBe("green");
+  });
 });
 
 describe("drawCard integration tests", () => {

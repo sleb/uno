@@ -20,45 +20,63 @@ const wildCard = (value: "wild" | "wild_draw4") =>
   CardSchema.parse({ kind: "wild", value });
 
 describe("isCardPlayable", () => {
-  test("blocks non-draw cards while a draw penalty is active", () => {
+  test("blocks all cards while a draw penalty is active (standard rules)", () => {
     const topCard = numberCard("red", 5);
     const card = numberCard("red", 7);
-    expect(isCardPlayable(card, topCard, null, 2)).toBe(false);
+    expect(isCardPlayable(card, topCard, null, 2, [])).toBe(false);
   });
 
-  test("allows draw cards to stack during a draw penalty", () => {
+  test("blocks draw cards during draw penalty when stacking disabled (standard rules)", () => {
     const topCard = specialCard("red", "draw2");
     const card = specialCard("blue", "draw2");
-    expect(isCardPlayable(card, topCard, null, 2)).toBe(true);
+    expect(isCardPlayable(card, topCard, null, 2, [])).toBe(false);
   });
 
-  test("always allows wild cards", () => {
+  test("blocks Wild Draw Four during draw penalty when stacking disabled (standard rules)", () => {
+    const topCard = wildCard("wild_draw4");
+    const card = wildCard("wild_draw4");
+    expect(isCardPlayable(card, topCard, "red", 4, [])).toBe(false);
+  });
+
+  test("allows draw cards to stack when stacking house rule enabled", () => {
+    const topCard = specialCard("red", "draw2");
+    const card = specialCard("blue", "draw2");
+    expect(isCardPlayable(card, topCard, null, 2, ["stacking"])).toBe(true);
+  });
+
+  test("allows Wild Draw Four to stack when stacking house rule enabled", () => {
+    const topCard = wildCard("wild_draw4");
+    const card = wildCard("wild_draw4");
+    expect(isCardPlayable(card, topCard, "red", 4, ["stacking"])).toBe(true);
+  });
+
+  test("always allows wild cards when no draw penalty", () => {
     const topCard = numberCard("red", 5);
-    expect(isCardPlayable(wildCard("wild"), topCard, null, 0)).toBe(true);
+    expect(isCardPlayable(wildCard("wild"), topCard, null, 0, [])).toBe(true);
   });
 
   test("matches by color", () => {
     const topCard = numberCard("red", 5);
     const card = numberCard("red", 9);
-    expect(isCardPlayable(card, topCard, null, 0)).toBe(true);
+    expect(isCardPlayable(card, topCard, null, 0, [])).toBe(true);
   });
 
   test("matches by value", () => {
     const topCard = numberCard("red", 5);
     const card = numberCard("blue", 5);
-    expect(isCardPlayable(card, topCard, null, 0)).toBe(true);
+    expect(isCardPlayable(card, topCard, null, 0, [])).toBe(true);
   });
 
   test("uses currentColor when top card is wild", () => {
     const topCard = wildCard("wild");
     const card = numberCard("green", 3);
-    expect(isCardPlayable(card, topCard, "green", 0)).toBe(true);
+    expect(isCardPlayable(card, topCard, "green", 0, [])).toBe(true);
   });
 
   test("rejects when top card is wild and no currentColor matches", () => {
     const topCard = wildCard("wild");
     const card = numberCard("green", 3);
-    expect(isCardPlayable(card, topCard, null, 0)).toBe(false);
+    expect(isCardPlayable(card, topCard, null, 0, [])).toBe(false);
   });
 });
 

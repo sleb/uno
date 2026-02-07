@@ -1,4 +1,4 @@
-import type { Card, Color } from "@uno/shared";
+import type { Card, Color, HouseRule } from "@uno/shared";
 
 export type Direction = "clockwise" | "counter-clockwise";
 
@@ -11,8 +11,14 @@ export const isCardPlayable = (
   topCard: Card,
   currentColor: Color | null,
   mustDraw: number,
+  houseRules: HouseRule[],
 ): boolean => {
-  if (mustDraw > 0 && !isDrawCard(card)) {
+  if (mustDraw > 0) {
+    // If stacking is enabled, allow draw cards to be played
+    if (houseRules.includes("stacking") && isDrawCard(card)) {
+      return true;
+    }
+    // Otherwise, no card can be played when mustDraw > 0
     return false;
   }
 

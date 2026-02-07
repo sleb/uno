@@ -676,7 +676,15 @@ export const playCard = async (
     const topCard = getTopCard(game.state.discardPile);
     const { currentColor, mustDraw } = game.state;
 
-    if (!isCardPlayable(playedCard, topCard, currentColor, mustDraw)) {
+    if (
+      !isCardPlayable(
+        playedCard,
+        topCard,
+        currentColor,
+        mustDraw,
+        game.config.houseRules,
+      )
+    ) {
       throw new Error("Card cannot be played");
     }
 

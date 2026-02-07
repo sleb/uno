@@ -99,7 +99,12 @@ const GameBoard = ({ game, currentUserId }: GameBoardProps) => {
     if (!isMyTurn || !topCard) {
       return false;
     }
-    if (game.state.mustDraw > 0 && !isDrawCard(card)) {
+    if (game.state.mustDraw > 0) {
+      // With stacking house rule, allow draw cards to be played
+      if (game.config.houseRules.includes("stacking") && isDrawCard(card)) {
+        return true;
+      }
+      // Otherwise, no cards can be played when mustDraw > 0
       return false;
     }
     if (card.kind === "wild") {
