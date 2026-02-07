@@ -25,6 +25,12 @@ import {
   getNextPlayerId,
   isCardPlayable,
 } from "./card-validation";
+import {
+  applyRulePhase,
+  createDefaultRulePipeline,
+  createPlayActionRule,
+  type RuleContext,
+} from "./rules";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
 import { calculateHandScore } from "./score-utils";
 
@@ -709,6 +715,21 @@ export const playCard = async (
         }
       }
     }
+
+    const pipeline = createDefaultRulePipeline();
+    pipeline.validate.push(createPlayActionRule());
+    const ruleContext: RuleContext = {
+      gameId,
+      playerId,
+      action: { type: "play", cardIndex, chosenColor },
+      game,
+      player,
+      playerHand,
+      playerHands: { [playerId]: playerHand },
+      transaction: t,
+      now: new Date().toISOString(),
+    };
+    applyRulePhase(pipeline, "validate", ruleContext);
 
     const newHand = playerHand.hand.filter((_, index) => index !== cardIndex);
     const updatedDiscardPile = [...game.state.discardPile, playedCard];

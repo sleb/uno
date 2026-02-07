@@ -21,3 +21,6 @@ export const createRulePipeline = (): RulePipeline => ({
   apply: [],
   finalize: [],
 });
+
+export const createDefaultRulePipeline = (): RulePipeline =>
+  createRulePipeline();
