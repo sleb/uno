@@ -690,10 +690,6 @@ export const playCard = async (
       throw new Error("Card cannot be played");
     }
 
-    if (playedCard.kind === "wild" && !chosenColor) {
-      throw new Error("Wild card requires chosen color");
-    }
-
     const pipeline = createDefaultRulePipeline();
     const ruleContext: RuleContext = {
       gameId,
