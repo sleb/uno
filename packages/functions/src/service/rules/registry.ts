@@ -1,5 +1,6 @@
 import { createCardPlayableRule } from "./card-playable-rule";
 import { createPlayActionRule } from "./play-action-rule";
+import { createTurnOwnershipRule } from "./turn-ownership-rule";
 import type { Rule } from "./types";
 import { createWildColorRule } from "./wild-color-rule";
 import { createWildDraw4Rule } from "./wild-draw4-rule";
@@ -28,6 +29,7 @@ export const createRulePipeline = (): RulePipeline => ({
 
 export const createDefaultRulePipeline = (): RulePipeline => {
   const pipeline = createRulePipeline();
+  pipeline["pre-validate"].push(createTurnOwnershipRule());
   pipeline.validate.push(
     createPlayActionRule(),
     createCardPlayableRule(),

@@ -649,19 +649,7 @@ export const playCard = async (
   return await db.runTransaction(async (t) => {
     // IMPORTANT: Do ALL reads before ANY writes (Firestore transaction requirement)
     const game = await getGame(gameId, t);
-
-    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
-      throw new Error(`Game ${gameId} is not in progress`);
-    }
-
     const currentIndex = game.players.indexOf(playerId);
-    if (currentIndex < 0) {
-      throw new Error(`Player ${playerId} is not in game ${gameId}`);
-    }
-
-    if (game.state.currentTurnPlayerId !== playerId) {
-      throw new Error("Not your turn");
-    }
 
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
@@ -679,6 +667,7 @@ export const playCard = async (
       transaction: t,
       now: new Date().toISOString(),
     };
+    applyRulePhase(pipeline, "pre-validate", ruleContext);
     applyRulePhase(pipeline, "validate", ruleContext);
 
     const playedCard = playerHand.hand[cardIndex];
