@@ -26,8 +26,8 @@ import {
   isCardPlayable,
 } from "./card-validation";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
-import { applyRulePhase, createDefaultRulePipeline } from "./rules";
 import type { RuleContext } from "./rules";
+import { applyRulePhase, createDefaultRulePipeline } from "./rules";
 import { calculateHandScore } from "./score-utils";
 
 const DECK_SIZE = 108;

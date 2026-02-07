@@ -1,6 +1,6 @@
 import { createPlayActionRule } from "./play-action-rule";
-import { createWildDraw4Rule } from "./wild-draw4-rule";
 import type { Rule } from "./types";
+import { createWildDraw4Rule } from "./wild-draw4-rule";
 
 export type RulePipelinePhase =
   | "pre-validate"

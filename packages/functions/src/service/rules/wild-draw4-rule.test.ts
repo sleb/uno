@@ -1,13 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import type {
-  GameData,
-  GamePlayerData,
-  PlayerHandData,
-} from "@uno/shared";
+import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { GAME_STATUSES } from "@uno/shared";
+import { describe, expect, test } from "bun:test";
 import type { Transaction } from "firebase-admin/firestore";
-import { createWildDraw4Rule } from "./wild-draw4-rule";
 import type { RuleContext } from "./types";
+import { createWildDraw4Rule } from "./wild-draw4-rule";
 
 const now = new Date().toISOString();
 
@@ -27,16 +23,16 @@ const createGame = (overrides: Partial<GameData> = {}): GameData => ({
     direction: "clockwise",
     deckSeed: "seed",
     drawPileCount: 100,
-    discardPile: [
-      { kind: "number", color: "red", value: 4 },
-    ],
+    discardPile: [{ kind: "number", color: "red", value: 4 }],
     currentColor: null,
     mustDraw: 0,
   },
   ...overrides,
 });
 
-const createPlayer = (overrides: Partial<GamePlayerData> = {}): GamePlayerData => ({
+const createPlayer = (
+  overrides: Partial<GamePlayerData> = {},
+): GamePlayerData => ({
   userId: "player-1",
   displayName: "Player One",
   avatar: "avatar",
@@ -55,7 +51,9 @@ const createPlayer = (overrides: Partial<GamePlayerData> = {}): GamePlayerData =
   ...overrides,
 });
 
-const createHand = (overrides: Partial<PlayerHandData> = {}): PlayerHandData => ({
+const createHand = (
+  overrides: Partial<PlayerHandData> = {},
+): PlayerHandData => ({
   hand: [],
   ...overrides,
 });
