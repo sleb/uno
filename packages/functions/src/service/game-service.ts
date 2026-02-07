@@ -20,11 +20,7 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
-import {
-  applyCardEffect,
-  getNextPlayerId,
-  isCardPlayable,
-} from "./card-validation";
+import { applyCardEffect, getNextPlayerId } from "./card-validation";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
 import type { RuleContext } from "./rules";
 import { applyRulePhase, createDefaultRulePipeline } from "./rules";
@@ -669,26 +665,7 @@ export const playCard = async (
 
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
-    const playedCard = playerHand.hand[cardIndex];
-
-    if (!playedCard) {
-      throw new Error("Invalid card index");
-    }
-
-    const topCard = getTopCard(game.state.discardPile);
     const { currentColor, mustDraw } = game.state;
-
-    if (
-      !isCardPlayable(
-        playedCard,
-        topCard,
-        currentColor,
-        mustDraw,
-        game.config.houseRules,
-      )
-    ) {
-      throw new Error("Card cannot be played");
-    }
 
     const pipeline = createDefaultRulePipeline();
     const ruleContext: RuleContext = {
@@ -703,6 +680,11 @@ export const playCard = async (
       now: new Date().toISOString(),
     };
     applyRulePhase(pipeline, "validate", ruleContext);
+
+    const playedCard = playerHand.hand[cardIndex];
+    if (!playedCard) {
+      throw new Error("Invalid card index");
+    }
 
     const newHand = playerHand.hand.filter((_, index) => index !== cardIndex);
     const updatedDiscardPile = [...game.state.discardPile, playedCard];

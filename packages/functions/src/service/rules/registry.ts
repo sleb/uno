@@ -1,3 +1,4 @@
+import { createCardPlayableRule } from "./card-playable-rule";
 import { createPlayActionRule } from "./play-action-rule";
 import type { Rule } from "./types";
 import { createWildColorRule } from "./wild-color-rule";
@@ -29,6 +30,7 @@ export const createDefaultRulePipeline = (): RulePipeline => {
   const pipeline = createRulePipeline();
   pipeline.validate.push(
     createPlayActionRule(),
+    createCardPlayableRule(),
     createWildColorRule(),
     createWildDraw4Rule(),
   );
