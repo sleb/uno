@@ -25,13 +25,9 @@ import {
   getNextPlayerId,
   isCardPlayable,
 } from "./card-validation";
-import {
-  applyRulePhase,
-  createDefaultRulePipeline,
-  createPlayActionRule,
-  type RuleContext,
-} from "./rules";
 import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
+import { applyRulePhase, createDefaultRulePipeline } from "./rules";
+import type { RuleContext } from "./rules";
 import { calculateHandScore } from "./score-utils";
 
 const DECK_SIZE = 108;
@@ -698,26 +694,7 @@ export const playCard = async (
       throw new Error("Wild card requires chosen color");
     }
 
-    if (playedCard.kind === "wild" && playedCard.value === "wild_draw4") {
-      const activeColor =
-        currentColor ?? (topCard.kind === "wild" ? null : topCard.color);
-      if (mustDraw === 0 && activeColor) {
-        const hasColorMatch = playerHand.hand.some(
-          (card, index) =>
-            index !== cardIndex &&
-            "color" in card &&
-            card.color === activeColor,
-        );
-        if (hasColorMatch) {
-          throw new Error(
-            "Wild Draw Four can only be played when you have no matching color",
-          );
-        }
-      }
-    }
-
     const pipeline = createDefaultRulePipeline();
-    pipeline.validate.push(createPlayActionRule());
     const ruleContext: RuleContext = {
       gameId,
       playerId,

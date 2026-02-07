@@ -1,3 +1,5 @@
+import { createPlayActionRule } from "./play-action-rule";
+import { createWildDraw4Rule } from "./wild-draw4-rule";
 import type { Rule } from "./types";
 
 export type RulePipelinePhase =
@@ -22,5 +24,8 @@ export const createRulePipeline = (): RulePipeline => ({
   finalize: [],
 });
 
-export const createDefaultRulePipeline = (): RulePipeline =>
-  createRulePipeline();
+export const createDefaultRulePipeline = (): RulePipeline => {
+  const pipeline = createRulePipeline();
+  pipeline.validate.push(createPlayActionRule(), createWildDraw4Rule());
+  return pipeline;
+};
