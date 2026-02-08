@@ -656,6 +656,9 @@ export const playCard = async (
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
 
+    // Fetch all player hands for rules (needed by finalize-rule and future rules)
+    const allPlayerHands = await getPlayerHands(gameId, game.players, t);
+
     const pipeline = createDefaultRulePipeline();
     const ruleContext: RuleContext = {
       gameId,
@@ -664,7 +667,7 @@ export const playCard = async (
       game,
       player,
       playerHand,
-      playerHands: { [playerId]: playerHand },
+      playerHands: allPlayerHands,
       transaction: t,
       now: new Date().toISOString(),
     };
@@ -678,20 +681,48 @@ export const playCard = async (
     // Collect all effects
     const allEffects = [...applyResult.effects, ...finalizeResult.effects];
 
-    // Apply effects to Firestore
+    // Apply effects to Firestore with conflict detection
     const gameUpdates: Record<string, unknown> = {};
     const playerUpdates: Record<string, Record<string, unknown>> = {};
     const handUpdates: Record<string, Card[]> = {};
     let winnerId: string | undefined;
     let preFetchedData: any;
 
+    // Track effect sources for conflict detection
+    const gameUpdateSources = new Map<string, string>();
+    const playerUpdateSources = new Map<string, Map<string, string>>();
+
     for (const effect of allEffects) {
       if (effect.type === "update-game") {
+        // Detect conflicts in game updates
+        for (const [key] of Object.entries(effect.updates)) {
+          if (gameUpdateSources.has(key)) {
+            console.warn(
+              `Effect conflict: multiple rules updating game.${key} (previous: ${gameUpdateSources.get(key)}, current: ${effect.type})`,
+            );
+          }
+          gameUpdateSources.set(key, effect.type);
+        }
         Object.assign(gameUpdates, effect.updates);
       } else if (effect.type === "update-player") {
         if (!playerUpdates[effect.playerId]) {
           playerUpdates[effect.playerId] = {};
         }
+        if (!playerUpdateSources.has(effect.playerId)) {
+          playerUpdateSources.set(effect.playerId, new Map());
+        }
+
+        // Detect conflicts in player updates
+        const playerSources = playerUpdateSources.get(effect.playerId)!;
+        for (const [key] of Object.entries(effect.updates)) {
+          if (playerSources.has(key)) {
+            console.warn(
+              `Effect conflict: multiple rules updating players[${effect.playerId}].${key} (previous: ${playerSources.get(key)}, current: ${effect.type})`,
+            );
+          }
+          playerSources.set(key, effect.type);
+        }
+
         Object.assign(playerUpdates[effect.playerId], effect.updates);
       } else if (effect.type === "update-hand") {
         handUpdates[effect.playerId] = effect.hand;

@@ -30,6 +30,14 @@ export const applyRulePhase = (
   return { effects, cardsDrawn };
 };
 
+/**
+ * Execute finalize phase rules for async operations and game completion
+ *
+ * IMPORTANT: The context passed to finalize rules is from before the apply phase
+ * executed. This is intentional for atomicity—finalize rules should pre-fetch any
+ * data they need rather than relying on mutations from the apply phase.
+ * If you need post-apply data, fetch it explicitly in your finalize method.
+ */
 export const applyFinalizePhase = async (
   pipeline: RulePipeline,
   context: RuleContext,
