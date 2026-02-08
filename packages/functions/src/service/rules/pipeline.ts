@@ -1,3 +1,4 @@
+import { validateDependencies } from "./dependency-validation";
 import { validateEffect } from "./effect-validation";
 import type { RulePipeline, RulePipelinePhase } from "./registry";
 import type { RuleContext, RuleResult } from "./types";
@@ -27,6 +28,11 @@ export const applyRulePhase = (
     }
 
     executedRules.push(rule.name);
+
+    // Validate dependencies if declared
+    if (rule.dependencies) {
+      validateDependencies(rule.name, rule.dependencies, context);
+    }
 
     if (shouldValidate) {
       rule.validate?.(context);
@@ -82,6 +88,11 @@ export const applyFinalizePhase = async (
     }
 
     executedRules.push(rule.name);
+
+    // Validate dependencies if declared
+    if (rule.dependencies) {
+      validateDependencies(rule.name, rule.dependencies, context);
+    }
 
     if (rule.finalize) {
       const result = await rule.finalize(context);

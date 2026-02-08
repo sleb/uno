@@ -402,10 +402,56 @@ All rules are fully typed with TypeScript discriminated unions. The compiler pre
 
 ---
 
+## Dependency Management
+
+Rules can declare dependencies on other rules that must be executed first. The pipeline automatically validates these dependencies and provides reporting tools.
+
+### Declaring Dependencies
+
+```typescript
+export const createMyRule = (): GameRule => ({
+  name: "my-rule",
+  phase: "apply",
+  dependencies: ["card-playable-rule", "turn-ownership-rule"],
+  // ... rule phases
+});
+```
+
+### Validation
+
+The pipeline validates dependencies before each rule executes:
+
+```typescript
+// In pipeline.ts, before validate phase:
+validateDependencies(rule, allRules);  // Throws if dependency undefined
+```
+
+If a rule declares a dependency that doesn't exist in the pipeline, an error is thrown with the rule name and missing dependency.
+
+### Debugging with Reports
+
+Generate a dependency report for debugging:
+
+```typescript
+import { generateDependencyReport } from "./dependency-validation";
+
+const report = generateDependencyReport(allRules);
+console.log(report);
+
+// Output:
+// Rule: my-rule
+//   → Dependencies: [card-playable-rule, turn-ownership-rule]
+// Rule: card-playable-rule
+//   → Dependencies: none
+```
+
+---
+
 ## Future Enhancements
 
 Potential extensions to the system:
-- [ ] Dependency graph validation (detect circular deps)
+- [x] Dependency graph validation and reporting
+- [ ] Circular dependency detection
 - [ ] Rule composition (mix/match rules for different game modes)
 - [ ] Effect replay (for undo/redo)
 - [ ] Rule versioning (support rule changes over time)
