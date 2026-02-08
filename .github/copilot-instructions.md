@@ -105,6 +105,53 @@ Structure (from [DESIGN.md](DESIGN.md)):
 - **Debug locally**: Set `NODE_ENV=development`, start Firebase emulators (`firebase emulators:start` on ports 9099/8080/5001), run `bun dev` in `packages/web`.
 - **Add tests**: Create `*.test.ts` file next to code, import from `bun:test`, use `describe`, `test`, `expect`. Run with `bun test` or `bun test --watch`.
 
+## Feature Development Workflow
+
+For **non-trivial features**, follow this structured workflow to ensure quality design and implementation:
+
+### Phase 1: Design (Feature Architect)
+When user requests a new feature:
+1. **Delegate to `feature-architect` agent** to analyze requirements and codebase
+2. Agent produces:
+   - Architecture design with rationale
+   - Detailed execution plan with phases
+   - Risk analysis and alternatives considered
+   - Integration points with existing code
+3. **Review the design** with the user before proceeding
+
+### Phase 2: Implementation (Clean-Coder + Feature-Architect Feedback Loop)
+For each phase of the plan:
+1. **Delegate to `clean-code-engineer` agent** to implement the phase
+2. **After implementation, request feature-architect to review** the changes:
+   - Code quality against design
+   - Any architectural issues
+   - Missed opportunities or problems
+3. **Handle feedback**:
+   - If architect's suggestions are straightforward → apply them directly
+   - If there's disagreement → have both agents present pros/cons for each approach, then I recommend
+   - If still unclear → check with user for final decision
+4. **Repeat** until all phases complete
+
+### Phase 3: Validation & Cleanup
+After all phases implemented:
+1. **Run full test suite**: `bun test`
+2. **Check lint**: `biome lint` (auto-fix with `biome lint --write`)
+3. **Fix any issues** found (compilation errors, test failures, lint violations)
+4. **Clean up temporary files**: Remove design documents, temporary test files, or example files created during design/implement process
+5. **Verify**: Build both packages (`bun run build` in functions and web)
+
+### When to Use This Workflow
+
+- ✅ New feature requiring 2+ hours work
+- ✅ Changes affecting multiple packages (web + functions + shared)
+- ✅ Architectural decisions (new service layer, new data model, new error handling)
+- ✅ Complex business logic (game rules, validation, state management)
+
+**Not needed for**:
+- Bug fixes with obvious solutions
+- Minor UI tweaks
+- Small isolated changes
+
 ## Custom Agents
 
 **IMPORTANT:** This project has specialized custom agents configured in Copilot. **Always prefer using these agents over doing work yourself** when the user's request matches the agent's purpose.
@@ -140,7 +187,7 @@ Structure (from [DESIGN.md](DESIGN.md)):
 - **Environment**: Keep config in `.env` with `UNO_PUBLIC_` prefix for client exposure. Bun auto-loads `.env` files.
 - **Exports**: Named exports only; avoid mutable default exports.
 - **Build Tools**: Use Bun exclusively for scripts, builds, and testing (not Node, npm, Vite, Webpack, Jest, or Vitest).
-- **Code Organization**: 
+- **Code Organization**:
   - One Cloud Function per file with matching service function
   - UI components in feature-based directories under `packages/web/src/components/`
   - Shared hooks in `packages/web/src/hooks/`
