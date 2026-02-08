@@ -22,8 +22,8 @@ interface GeneratedDoc {
  * Generate HTML rule reference documentation
  */
 export function generateRuleReferenceHTML(): GeneratedDoc {
-  const rules = getAllRuleDocumentation();
-  const phases = ["pre-validate", "validate", "apply", "finalize"];
+  const _rules = getAllRuleDocumentation();
+  const phases = ["pre-validate", "validate", "apply", "finalize"] as const;
 
   let html = `<!DOCTYPE html>
 <html lang="en">
@@ -157,7 +157,7 @@ export function generateRuleReferenceHTML(): GeneratedDoc {
 
   // Add TOC entries
   for (const phase of phases) {
-    const phaseRules = getRulesByPhase(phase as any);
+    const phaseRules = getRulesByPhase(phase);
     if (phaseRules.length > 0) {
       html += `<li><strong>${phase.replace("-", " ").toUpperCase()}</strong><ul>`;
       for (const rule of phaseRules) {
@@ -171,7 +171,7 @@ export function generateRuleReferenceHTML(): GeneratedDoc {
 
   // Generate rule sections by phase
   for (const phase of phases) {
-    const phaseRules = getRulesByPhase(phase as any);
+    const phaseRules = getRulesByPhase(phase);
     if (phaseRules.length === 0) continue;
 
     const phaseName = phase.replace(/-/g, " ").toUpperCase();
@@ -255,8 +255,8 @@ function generateRuleCardHTML(rule: RuleDocumentation): string {
  * Generate markdown rule reference
  */
 export function generateRuleReferenceMarkdown(): GeneratedDoc {
-  const rules = getAllRuleDocumentation();
-  const phases = ["pre-validate", "validate", "apply", "finalize"];
+  const _rules = getAllRuleDocumentation();
+  const phases = ["pre-validate", "validate", "apply", "finalize"] as const;
 
   let markdown = `# UNO Game Rules Reference
 
@@ -267,7 +267,7 @@ export function generateRuleReferenceMarkdown(): GeneratedDoc {
 
   // TOC
   for (const phase of phases) {
-    const phaseRules = getRulesByPhase(phase as any);
+    const phaseRules = getRulesByPhase(phase);
     if (phaseRules.length > 0) {
       markdown += `- **${phase.replace(/-/g, " ").toUpperCase()}**\n`;
       for (const rule of phaseRules) {
@@ -280,7 +280,7 @@ export function generateRuleReferenceMarkdown(): GeneratedDoc {
 
   // Rules by phase
   for (const phase of phases) {
-    const phaseRules = getRulesByPhase(phase as any);
+    const phaseRules = getRulesByPhase(phase);
     if (phaseRules.length === 0) continue;
 
     const phaseName = phase.replace(/-/g, " ").toUpperCase();
@@ -345,7 +345,7 @@ function generateRuleMarkdown(rule: RuleDocumentation): string {
  */
 export function generateRuleInteractionMatrix(): GeneratedDoc {
   const rules = getAllRuleDocumentation();
-  const ruleMap = new Map(rules.map((r) => [r.id, r]));
+  const _ruleMap = new Map(rules.map((r) => [r.id, r]));
 
   let markdown = `# Rule Interaction Matrix\n\n`;
   markdown += `> Shows which rules interact or relate to each other\n> Generated: ${new Date().toLocaleString()}\n\n`;

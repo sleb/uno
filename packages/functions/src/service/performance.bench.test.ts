@@ -91,9 +91,9 @@ describe("Performance Benchmarking", () => {
       for (let i = 0; i < iterations; i++) {
         perfMetrics.start("inner");
         // Simulate minimal work
-        let x = 0;
+        let _x = 0;
         for (let j = 0; j < 10; j++) {
-          x += j;
+          _x += j;
         }
         perfMetrics.end();
       }
@@ -173,7 +173,7 @@ describe("Performance Benchmarking", () => {
           effectIdx++
         ) {
           // Simulate effect creation
-          const dummy = {
+          const _dummy = {
             type: "update-game",
             updates: { field: Math.random() },
           };

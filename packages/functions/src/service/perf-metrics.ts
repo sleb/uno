@@ -52,7 +52,9 @@ class PerfMetrics {
   end(): number {
     if (!this.enabled || this.stack.length === 0) return 0;
 
-    const entry = this.stack.pop()!;
+    const entry = this.stack.pop();
+    if (!entry) return 0; // Should never happen due to length check, but satisfies type safety
+
     const duration = Date.now() - entry.startTime;
     entry.duration = duration;
 

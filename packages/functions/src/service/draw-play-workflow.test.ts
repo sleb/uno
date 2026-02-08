@@ -19,12 +19,12 @@ import {
 import { drawCard, passTurn, playCard } from "./game-service";
 
 // Test setup with Firebase Admin
-let app: import("firebase-admin").app.App;
+let _app: import("firebase-admin").app.App;
 let db: FirebaseFirestore.Firestore;
 
 beforeEach(async () => {
   const firebase = getFirebaseForTest();
-  app = firebase.app;
+  _app = firebase.app;
   db = firebase.db;
 });
 

@@ -1,5 +1,6 @@
 import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { describe, expect, test } from "bun:test";
+import type { Transaction } from "firebase-admin/firestore";
 import type { RuleContext } from "./types";
 import { createUpdatePlayerHandRule } from "./update-player-hand-rule";
 
@@ -31,7 +32,7 @@ const createMockContext = (
     ],
   } as PlayerHandData,
   playerHands: {},
-  transaction: {} as any,
+  transaction: {} as Transaction,
   now: new Date().toISOString(),
   ...overrides,
 });

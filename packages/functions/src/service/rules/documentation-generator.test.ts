@@ -106,9 +106,9 @@ describe("Documentation Generator", () => {
     expect(doc.content).toContain("Total Rules:");
     expect(doc.content).toContain(`${rules.length}`);
 
-    const phases = ["pre-validate", "validate", "apply", "finalize"];
+    const phases = ["pre-validate", "validate", "apply", "finalize"] as const;
     for (const phase of phases) {
-      const count = getRulesByPhase(phase as any).length;
+      const count = getRulesByPhase(phase).length;
       if (count > 0) {
         expect(doc.content).toContain(`**${phase}:**`);
       }

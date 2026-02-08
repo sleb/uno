@@ -1,4 +1,3 @@
-import type { Card, UserStats } from "@uno/shared";
 import {
   afterEach,
   beforeAll,
@@ -7,6 +6,7 @@ import {
   expect,
   test,
 } from "bun:test";
+import type { Card, UserStats } from "@uno/shared";
 
 // IMPORTANT: Set emulator env vars BEFORE importing game-service
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";

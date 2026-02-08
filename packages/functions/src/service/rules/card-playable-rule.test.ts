@@ -1,6 +1,6 @@
+import { describe, expect, test } from "bun:test";
 import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { GAME_STATUSES } from "@uno/shared";
-import { describe, expect, test } from "bun:test";
 import type { Transaction } from "firebase-admin/firestore";
 import { createCardPlayableRule } from "./card-playable-rule";
 import type { RuleContext } from "./types";

@@ -1,6 +1,7 @@
 import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { GAME_STATUSES } from "@uno/shared";
 import { describe, expect, test } from "bun:test";
+import type { Transaction } from "firebase-admin/firestore";
 import type { RuleContext } from "./types";
 import { createUpdateDiscardPileRule } from "./update-discard-pile-rule";
 
@@ -31,7 +32,7 @@ const createMockContext = (
     ],
   } as PlayerHandData,
   playerHands: {},
-  transaction: {} as any,
+  transaction: {} as Transaction,
   now: "2024-01-01T00:00:00.000Z",
   ...overrides,
 });

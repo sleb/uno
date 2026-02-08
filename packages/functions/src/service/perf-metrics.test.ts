@@ -159,7 +159,8 @@ describe("perfMetrics", () => {
     const report = getPerfReport();
 
     // Each phase should have reasonable percentages
-    const total = report.phases.phase1.duration + report.phases.phase2.duration;
+    const _total =
+      report.phases.phase1.duration + report.phases.phase2.duration;
     const percent1 = report.phases.phase1.percent;
     const percent2 = report.phases.phase2.percent;
 

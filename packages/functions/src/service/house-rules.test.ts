@@ -20,12 +20,12 @@ import {
 import { drawCard, playCard } from "./game-service";
 
 // Test setup with Firebase Admin
-let app: import("firebase-admin").app.App;
+let _app: import("firebase-admin").app.App;
 let db: FirebaseFirestore.Firestore;
 
 beforeEach(async () => {
   const firebase = getFirebaseForTest();
-  app = firebase.app;
+  _app = firebase.app;
   db = firebase.db;
 });
 
@@ -714,7 +714,7 @@ describe("House Rule: Draw to Match", () => {
       });
 
     // Draw with Draw to Match
-    const drawResult = await drawCard("game1", "player1", 1);
+    const _drawResult = await drawCard("game1", "player1", 1);
 
     // Get the hand to find the playable card
     const handDoc = await db

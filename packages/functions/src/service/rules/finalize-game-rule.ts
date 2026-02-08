@@ -1,4 +1,5 @@
-import { UserDataSchema } from "@uno/shared";
+import type { UserData } from "@uno/shared";
+import { type GamePlayerData, UserDataSchema } from "@uno/shared";
 import {
   getDoc,
   getGamePlayer,
@@ -22,7 +23,6 @@ export const createFinalizeGameRule = (): Rule => ({
       return false;
     }
 
-    const { cardIndex } = ctx.action;
     const { playerHand } = ctx;
     const newHandSize = playerHand.hand.length - 1;
     return newHandSize === 0;
@@ -32,7 +32,7 @@ export const createFinalizeGameRule = (): Rule => ({
     // No validation needed - this is a finalize-phase rule
   },
 
-  apply: (ctx: RuleContext): RuleResult => {
+  apply: (_ctx: RuleContext): RuleResult => {
     // This is async work that happens in finalize phase
     // It will be handled separately in the pipeline executor
     return { effects: [], cardsDrawn: [] };
@@ -56,8 +56,8 @@ export const createFinalizeGameRule = (): Rule => ({
     // Pre-fetch all data needed for finalizeGame
     const playerIds = game.players;
     const playerHands = await getPlayerHands(gameId, playerIds, t);
-    const gamePlayers: Record<string, any> = {};
-    const userDataMap: Record<string, any> = {};
+    const gamePlayers: Record<string, GamePlayerData> = {};
+    const userDataMap: Record<string, UserData> = {};
 
     for (const playerId of playerIds) {
       gamePlayers[playerId] = await getGamePlayer(gameId, playerId, t);

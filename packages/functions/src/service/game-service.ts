@@ -173,13 +173,13 @@ export const detectEffectConflicts = (
   playerUpdates: Record<string, Record<string, unknown>>;
   handUpdates: Record<string, Card[]>;
   winnerId?: string;
-  preFetchedData?: any;
+  preFetchedData?: SetWinnerEffect["preFetchedData"];
 } => {
   const gameUpdates: Record<string, unknown> = {};
   const playerUpdates: Record<string, Record<string, unknown>> = {};
   const handUpdates: Record<string, Card[]> = {};
   let winnerId: string | undefined;
-  let preFetchedData: any;
+  let preFetchedData: SetWinnerEffect["preFetchedData"] | undefined;
 
   const gameUpdateSources = new Map<
     string,
@@ -217,7 +217,13 @@ export const detectEffectConflicts = (
         playerUpdateSources.set(effect.playerId, new Map());
       }
 
-      const playerSources = playerUpdateSources.get(effect.playerId)!;
+      const playerSources = playerUpdateSources.get(effect.playerId);
+      if (!playerSources) {
+        throw new Error(
+          `Internal error: playerUpdateSources not initialized for ${effect.playerId}`,
+        );
+      }
+
       for (const [key, value] of Object.entries(effect.updates)) {
         const valueKey = stableJsonStringify(value);
         const existing = playerSources.get(key);

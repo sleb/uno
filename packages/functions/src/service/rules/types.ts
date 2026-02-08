@@ -3,6 +3,7 @@ import type {
   GameData,
   GamePlayerData,
   PlayerHandData,
+  UserData,
 } from "@uno/shared";
 import type { Transaction } from "firebase-admin/firestore";
 
@@ -62,7 +63,7 @@ export type SetWinnerEffect = {
     game: GameData;
     playerHands: Record<string, PlayerHandData>;
     gamePlayers: Record<string, GamePlayerData>;
-    userDataMap: Record<string, any>;
+    userDataMap: Record<string, UserData>;
   };
   sourceRule?: string;
 };

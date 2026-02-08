@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import type {
   EmitEventsEffect,
+  RuleEffect,
   SetWinnerEffect,
   UpdateGameEffect,
   UpdateHandEffect,
@@ -172,7 +173,7 @@ export const validateEmitEventsEffect = (effect: EmitEventsEffect): void => {
  * Validates all field references in an effect
  * Used during effect processing to catch configuration errors
  */
-export const validateEffect = (effect: any): void => {
+export const validateEffect = (effect: RuleEffect): void => {
   if (effect.type === "update-game") {
     validateGameEffect(effect);
   } else if (effect.type === "update-player") {

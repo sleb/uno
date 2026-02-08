@@ -1,5 +1,5 @@
-import type { Card } from "@uno/shared";
 import { describe, expect, test } from "bun:test";
+import type { Card } from "@uno/shared";
 import { detectEffectConflicts } from "./game-service";
 import type { RuleEffect } from "./rules";
 
@@ -99,6 +99,8 @@ describe("detectEffectConflicts", () => {
       },
     ];
 
-    expect(() => detectEffectConflicts(effects)).toThrow(/playerHands\[player-1\]/);
+    expect(() => detectEffectConflicts(effects)).toThrow(
+      /playerHands\[player-1\]/,
+    );
   });
 });
