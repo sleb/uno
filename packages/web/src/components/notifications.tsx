@@ -69,7 +69,19 @@ export const notifyError = (err: unknown) => {
           message: "No account found with the provided credentials.",
         });
         return;
+      default:
+        // For function errors and other Firebase errors, show the actual message
+        // Check that message is meaningfully different from code (length check ensures not just code duplication)
+        if (err.message && err.message.length > err.code.length) {
+          notify("error", { message: err.message });
+          return;
+        }
     }
+  }
+
+  if (err instanceof Error && err.message) {
+    notify("error", { message: err.message });
+    return;
   }
 
   notify("error", {

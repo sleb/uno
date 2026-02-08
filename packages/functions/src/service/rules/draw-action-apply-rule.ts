@@ -5,6 +5,34 @@ import type { Rule, RuleContext, RuleResult } from "./types";
 
 const MAX_DRAW_TO_MATCH_ATTEMPTS = 50;
 
+/**
+ * Determines whether to auto-pass the turn after drawing cards.
+ * - Penalty draws always result in pass
+ * - Draw-to-match keeps turn with player (they drew a playable card)
+ * - Normal draws check if any drawn card is playable
+ */
+const shouldAutoPass = (
+  isPenaltyDraw: boolean,
+  isDrawToMatchEnabled: boolean,
+  drawnCards: Card[],
+  topCard: Card,
+  currentColor: string,
+  houseRules: string[],
+): boolean => {
+  // Penalty draws automatically pass to next player
+  if (isPenaltyDraw) return true;
+
+  // Draw-to-match keeps turn (guaranteed playable card drawn)
+  if (isDrawToMatchEnabled) return false;
+
+  // Normal draw: check if any drawn card is playable
+  if (drawnCards.length === 0) return true;
+
+  return !drawnCards.some((card) =>
+    isCardPlayable(card, topCard, currentColor, 0, houseRules),
+  );
+};
+
 export const createDrawActionApplyRule = (): Rule => ({
   name: "draw-action-apply",
   phase: "apply",
@@ -110,42 +138,25 @@ export const createDrawActionApplyRule = (): Rule => ({
     const newHand = [...playerHand.hand, ...drawnCards];
     const currentIndex = game.players.indexOf(playerId);
 
-    // Determine next player:
-    // - After penalty draw: automatically pass to next player
-    // - After draw-to-match: keep turn with player (they have playable card)
-    // - After normal draw: check if drawn card is playable
-    //   - If playable: keep turn with player
-    //   - If not playable: automatically pass to next player
+    // Determine next player based on draw type and card playability
+    const topCard = getTopCard(game.state.discardPile);
+    const shouldPass = shouldAutoPass(
+      isPenaltyDraw,
+      isDrawToMatchEnabled,
+      drawnCards,
+      topCard,
+      game.state.currentColor,
+      game.config.houseRules,
+    );
+
     let nextPlayerId = playerId;
-    if (isPenaltyDraw) {
+    if (shouldPass) {
       nextPlayerId = getNextPlayerId(
         game.players,
         currentIndex,
         game.state.direction,
         false,
       );
-    } else if (!isDrawToMatchEnabled && drawnCards.length > 0) {
-      // Check if any drawn card is playable
-      const topCard = getTopCard(game.state.discardPile);
-      const hasPlayableCard = drawnCards.some((card) =>
-        isCardPlayable(
-          card,
-          topCard,
-          game.state.currentColor,
-          0,
-          game.config.houseRules,
-        ),
-      );
-
-      // If no playable cards drawn, automatically pass to next player
-      if (!hasPlayableCard) {
-        nextPlayerId = getNextPlayerId(
-          game.players,
-          currentIndex,
-          game.state.direction,
-          false,
-        );
-      }
     }
 
     return {

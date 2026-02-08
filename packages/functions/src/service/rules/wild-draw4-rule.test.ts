@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
 import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { GAME_STATUSES } from "@uno/shared";
+import { describe, expect, test } from "bun:test";
 import type { Transaction } from "firebase-admin/firestore";
 import type { RuleContext } from "./types";
 import { createWildDraw4Rule } from "./wild-draw4-rule";
@@ -72,7 +72,19 @@ const createContext = (overrides: Partial<RuleContext> = {}): RuleContext => ({
 });
 
 describe("wild draw4 rule", () => {
-  test("throws when player has matching color", () => {
+  test("allows wild draw4 to be played anytime", () => {
+    const rule = createWildDraw4Rule();
+    const context = createContext({
+      playerHand: createHand({
+        hand: [{ kind: "wild", value: "wild_draw4" }],
+      }),
+    });
+
+    // Should not throw - wild draw4 can be played anytime
+    expect(() => rule.validate?.(context)).not.toThrow();
+  });
+
+  test("allows wild draw4 even when player has matching color", () => {
     const rule = createWildDraw4Rule();
     const context = createContext({
       game: createGame({
@@ -91,100 +103,34 @@ describe("wild draw4 rule", () => {
       }),
     });
 
-    expect(() => rule.validate?.(context)).toThrow(
-      "Wild Draw Four can only be played when you have no matching color",
-    );
-  });
-
-  test("does not throw when no matching color", () => {
-    const rule = createWildDraw4Rule();
-    const context = createContext({
-      game: createGame({
-        state: {
-          ...createGame().state,
-          currentColor: "red",
-          discardPile: [{ kind: "number", color: "red", value: 9 }],
-          mustDraw: 0,
-        },
-      }),
-      playerHand: createHand({
-        hand: [
-          { kind: "wild", value: "wild_draw4" },
-          { kind: "number", color: "blue", value: 2 },
-        ],
-      }),
-    });
-
+    // Should not throw - wild draw4 can be played even with matching color
     expect(() => rule.validate?.(context)).not.toThrow();
   });
 
-  test("uses top-card color when currentColor is null", () => {
+  test("throws for invalid card index", () => {
     const rule = createWildDraw4Rule();
     const context = createContext({
-      game: createGame({
-        state: {
-          ...createGame().state,
-          currentColor: null,
-          discardPile: [{ kind: "number", color: "yellow", value: 5 }],
-          mustDraw: 0,
-        },
-      }),
+      action: { type: "play", cardIndex: 999 },
       playerHand: createHand({
-        hand: [
-          { kind: "wild", value: "wild_draw4" },
-          { kind: "number", color: "yellow", value: 1 },
-        ],
+        hand: [{ kind: "wild", value: "wild_draw4" }],
       }),
     });
 
-    expect(() => rule.validate?.(context)).toThrow(
-      "Wild Draw Four can only be played when you have no matching color",
-    );
+    expect(() => rule.validate?.(context)).toThrow("Invalid card index");
   });
 
-  test("uses currentColor when top card is wild", () => {
+  test("throws for non-wild card types", () => {
     const rule = createWildDraw4Rule();
     const context = createContext({
-      game: createGame({
-        state: {
-          ...createGame().state,
-          currentColor: "green",
-          discardPile: [{ kind: "wild", value: "wild" }],
-          mustDraw: 0,
-        },
-      }),
+      action: { type: "play", cardIndex: 0 },
       playerHand: createHand({
-        hand: [
-          { kind: "wild", value: "wild_draw4" },
-          { kind: "number", color: "green", value: 7 },
-        ],
+        hand: [{ kind: "number", color: "red", value: 5 }],
       }),
     });
 
+    // This rule only validates Wild Draw Four, so other card types should throw
     expect(() => rule.validate?.(context)).toThrow(
-      "Wild Draw Four can only be played when you have no matching color",
+      "This rule only handles Wild Draw Four cards",
     );
-  });
-
-  test("does not throw when mustDraw is active", () => {
-    const rule = createWildDraw4Rule();
-    const context = createContext({
-      game: createGame({
-        state: {
-          ...createGame().state,
-          currentColor: "red",
-          discardPile: [{ kind: "number", color: "red", value: 9 }],
-          mustDraw: 2,
-        },
-      }),
-      playerHand: createHand({
-        hand: [
-          { kind: "wild", value: "wild_draw4" },
-          { kind: "number", color: "red", value: 2 },
-        ],
-      }),
-    });
-
-    expect(() => rule.validate?.(context)).not.toThrow();
   });
 });

@@ -769,7 +769,7 @@ describe("House Rule: Multiple Rules Combined", () => {
 });
 
 describe("House Rule: Edge Cases", () => {
-  test("should enforce Wild Draw Four legality check with stacking", async () => {
+  test("should allow Wild Draw Four to be played anytime", async () => {
     await createUser("player1", "Alice");
     await createUser("player2", "Bob");
     await createGameWithHouseRules(
@@ -792,13 +792,15 @@ describe("House Rule: Edge Cases", () => {
         ],
       });
 
-    // Try to play Wild Draw Four illegally - should fail
-    await expect(playCard("game1", "player1", 0, "blue")).rejects.toThrow(
-      "Wild Draw Four can only be played when you have no matching color",
-    );
+    // Should allow playing Wild Draw Four even though player has matching color
+    await playCard("game1", "player1", 0, "blue");
+
+    const gameDoc = await db.collection("games").doc("game1").get();
+    expect(gameDoc.data()?.state.currentColor).toBe("blue");
+    expect(gameDoc.data()?.state.mustDraw).toBe(4);
   });
 
-  test("should NOT check Wild Draw Four legality when stacking", async () => {
+  test("should allow Wild Draw Four stacking when house rule enabled", async () => {
     await createUser("player1", "Alice");
     await createUser("player2", "Bob");
     await createGameWithHouseRules(

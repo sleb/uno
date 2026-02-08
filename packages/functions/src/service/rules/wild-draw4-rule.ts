@@ -1,15 +1,4 @@
-import type { Card } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
-
-const getTopCard = (discardPile: Card[]): Card => {
-  const topCard = discardPile[discardPile.length - 1];
-
-  if (!topCard) {
-    throw new Error("Discard pile is empty");
-  }
-
-  return topCard;
-};
 
 export const createWildDraw4Rule = (): Rule => ({
   name: "wild-draw4-validation",
@@ -25,29 +14,13 @@ export const createWildDraw4Rule = (): Rule => ({
       throw new Error("Invalid card index");
     }
 
-    if (!(playedCard.kind === "wild" && playedCard.value === "wild_draw4")) {
-      return;
+    // Verify the card is actually a Wild Draw Four (even though rule is permissive)
+    if (playedCard.kind !== "wild" || playedCard.value !== "wild_draw4") {
+      throw new Error("This rule only handles Wild Draw Four cards");
     }
 
-    const { currentColor, mustDraw, discardPile } = context.game.state;
-    const topCard = getTopCard(discardPile);
-    const activeColor =
-      currentColor ?? (topCard.kind === "wild" ? null : topCard.color);
-
-    if (mustDraw === 0 && activeColor) {
-      const hasColorMatch = context.playerHand.hand.some(
-        (card, index) =>
-          index !== context.action.cardIndex &&
-          "color" in card &&
-          card.color === activeColor,
-      );
-
-      if (hasColorMatch) {
-        throw new Error(
-          "Wild Draw Four can only be played when you have no matching color",
-        );
-      }
-    }
+    // Wild Draw Four can now be played at any time, no restriction on matching colors
+    // This is a more relaxed rule that gives players more strategic options
   },
   apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });
