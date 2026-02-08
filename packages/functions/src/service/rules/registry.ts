@@ -1,6 +1,10 @@
 import { createApplyCardEffectRule } from "./apply-card-effect-rule";
 import { createCardPlayableRule } from "./card-playable-rule";
+import { createDrawActionApplyRule } from "./draw-action-apply-rule";
+import { createDrawActionValidateRule } from "./draw-action-validate-rule";
 import { createFinalizeGameRule } from "./finalize-game-rule";
+import { createPassActionApplyRule } from "./pass-action-apply-rule";
+import { createPassActionValidateRule } from "./pass-action-validate-rule";
 import { createPlayActionRule } from "./play-action-rule";
 import { createTurnOwnershipRule } from "./turn-ownership-rule";
 import type { Rule } from "./types";
@@ -38,8 +42,10 @@ export const createDefaultRulePipeline = (): RulePipeline => {
   // Pre-validate: Check game state and turn ownership
   pipeline["pre-validate"].push(createTurnOwnershipRule());
 
-  // Validate: Check card legality and action validity
+  // Validate: Check action validity and card legality
   pipeline.validate.push(
+    createDrawActionValidateRule(),
+    createPassActionValidateRule(),
     createPlayActionRule(),
     createCardPlayableRule(),
     createWildColorRule(),
@@ -52,6 +58,8 @@ export const createDefaultRulePipeline = (): RulePipeline => {
     createUpdateDiscardPileRule(), // Update discard pile and game status
     createUpdatePlayerHandRule(), // Remove card from hand
     createUpdatePlayerStatsRule(), // Update player stats and UNO flags
+    createDrawActionApplyRule(),
+    createPassActionApplyRule(),
   );
 
   // Finalize: Handle game completion

@@ -15,6 +15,7 @@ const GameStateFields = z.enum([
   "currentColor",
   "discardPile",
   "deckSeed",
+  "drawPileCount",
 ]);
 
 // Game config fields that can be updated

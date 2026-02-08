@@ -3,12 +3,8 @@ import type { Rule, RuleContext, RuleResult } from "./types";
 
 export const createTurnOwnershipRule = (): Rule => ({
   name: "turn-ownership-validation",
-  canHandle: (context: RuleContext) => context.action.type === "play",
+  canHandle: () => true,
   validate: (context: RuleContext) => {
-    if (context.action.type !== "play") {
-      return;
-    }
-
     if (context.game.state.status !== GAME_STATUSES.IN_PROGRESS) {
       throw new Error("Game is not in progress");
     }
@@ -24,5 +20,5 @@ export const createTurnOwnershipRule = (): Rule => ({
       throw new Error("Not your turn");
     }
   },
-  apply: (): RuleResult => ({ effects: [] }),
+  apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });

@@ -41,5 +41,5 @@ export const createCardPlayableRule = (): Rule => ({
       throw new Error("Card cannot be played");
     }
   },
-  apply: (): RuleResult => ({ effects: [] }),
+  apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });

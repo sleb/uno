@@ -18,5 +18,5 @@ export const createWildColorRule = (): Rule => ({
       throw new Error("Wild card requires chosen color");
     }
   },
-  apply: (): RuleResult => ({ effects: [] }),
+  apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });

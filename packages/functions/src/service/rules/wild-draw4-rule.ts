@@ -49,5 +49,5 @@ export const createWildDraw4Rule = (): Rule => ({
       }
     }
   },
-  apply: (): RuleResult => ({ effects: [] }),
+  apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });

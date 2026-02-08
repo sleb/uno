@@ -72,6 +72,27 @@ const createContext = (overrides: Partial<RuleContext> = {}): RuleContext => ({
 });
 
 describe("turn ownership rule", () => {
+  test("handles play action", () => {
+    const rule = createTurnOwnershipRule();
+    const context = createContext({ action: { type: "play", cardIndex: 0 } });
+
+    expect(rule.canHandle(context)).toBe(true);
+  });
+
+  test("handles draw action", () => {
+    const rule = createTurnOwnershipRule();
+    const context = createContext({ action: { type: "draw", count: 1 } });
+
+    expect(rule.canHandle(context)).toBe(true);
+  });
+
+  test("handles pass action", () => {
+    const rule = createTurnOwnershipRule();
+    const context = createContext({ action: { type: "pass" } });
+
+    expect(rule.canHandle(context)).toBe(true);
+  });
+
   test("throws when game is not in progress", () => {
     const rule = createTurnOwnershipRule();
     const context = createContext({

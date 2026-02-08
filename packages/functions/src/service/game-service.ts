@@ -20,8 +20,8 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { db } from "../firebase";
-import { getNextPlayerId, isCardPlayable } from "./card-validation";
-import { generateCardAtIndex, getDeckForSeed } from "./deck-utils";
+import { DECK_SIZE, generateCardAtIndex } from "./deck-utils";
+import { drawCardsFromDeck, generateDeckSeed } from "./draw-utils";
 import type { RuleContext } from "./rules";
 import {
   applyFinalizePhase,
@@ -29,8 +29,6 @@ import {
   createDefaultRulePipeline,
 } from "./rules";
 import { calculateHandScore } from "./score-utils";
-
-const DECK_SIZE = 108;
 
 export const getDoc = async (
   ref: DocumentReference,
@@ -76,10 +74,6 @@ const getUser = async (
   }
 
   return UserDataSchema.parse(snapshot.data());
-};
-
-const generateDeckSeed = (): string => {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 /**
@@ -156,131 +150,6 @@ const getGamePlayers = async (
   }
 
   return players;
-};
-
-const getTopCard = (discardPile: Card[]): Card => {
-  const topCard = discardPile[discardPile.length - 1];
-
-  if (!topCard) {
-    throw new Error("Discard pile is empty");
-  }
-
-  return topCard;
-};
-
-const isSameCard = (left: Card, right: Card): boolean => {
-  if (left.kind !== right.kind) {
-    return false;
-  }
-
-  if (left.value !== right.value) {
-    return false;
-  }
-
-  if ("color" in left || "color" in right) {
-    return "color" in left && "color" in right && left.color === right.color;
-  }
-
-  return true;
-};
-
-const removeCardFromDeck = (deck: Card[], card: Card): void => {
-  const index = deck.findIndex((candidate) => isSameCard(candidate, card));
-
-  if (index < 0) {
-    throw new Error("Card not found in deck");
-  }
-
-  deck.splice(index, 1);
-};
-
-const buildAvailableDeck = (seed: string, usedCards: Card[]): Card[] => {
-  const deck = [...getDeckForSeed(seed)];
-
-  for (const card of usedCards) {
-    removeCardFromDeck(deck, card);
-  }
-
-  return deck;
-};
-
-const buildUsedCards = (
-  discardPile: Card[],
-  hands: Card[],
-  keepAllDiscards: boolean,
-): Card[] => {
-  const usedCards = [...hands];
-
-  if (discardPile.length > 0) {
-    usedCards.push(
-      ...(keepAllDiscards
-        ? discardPile
-        : [discardPile[discardPile.length - 1]]),
-    );
-  }
-
-  return usedCards;
-};
-
-const collectHandCards = (
-  playerHands: Record<string, PlayerHandData>,
-): Card[] => {
-  return Object.values(playerHands).flatMap((hand) => hand.hand);
-};
-
-const drawCardsFromDeck = ({
-  seed,
-  discardPile,
-  playerHands,
-  count,
-}: {
-  seed: string;
-  discardPile: Card[];
-  playerHands: Record<string, PlayerHandData>;
-  count: number;
-}): {
-  drawnCards: Card[];
-  deckSeed: string;
-  drawPileCount: number;
-  discardPile: Card[];
-} => {
-  const handCards = collectHandCards(playerHands);
-  let deckSeed = seed;
-  let activeDiscardPile = discardPile;
-  let usedCards = buildUsedCards(activeDiscardPile, handCards, true);
-  let availableDeck = buildAvailableDeck(deckSeed, usedCards);
-
-  if (availableDeck.length < count) {
-    if (discardPile.length <= 1) {
-      throw new Error("Not enough cards in deck to draw");
-    }
-
-    deckSeed = generateDeckSeed();
-    activeDiscardPile = [getTopCard(discardPile)];
-    usedCards = buildUsedCards(activeDiscardPile, handCards, false);
-    availableDeck = buildAvailableDeck(deckSeed, usedCards);
-  }
-
-  if (availableDeck.length < count) {
-    throw new Error("Not enough cards in deck to draw");
-  }
-
-  const drawnCards: Card[] = [];
-  const remainingDeck = [...availableDeck];
-  for (let i = 0; i < count; i++) {
-    const nextCard = remainingDeck.shift();
-    if (!nextCard) {
-      throw new Error("Not enough cards in deck to draw");
-    }
-    drawnCards.push(nextCard);
-  }
-
-  return {
-    drawnCards,
-    deckSeed,
-    drawPileCount: remainingDeck.length,
-    discardPile: activeDiscardPile,
-  };
 };
 
 export const createGame = async (
@@ -644,26 +513,29 @@ export const finalizeGame = async (
   }
 };
 
-export const playCard = async (
-  gameId: string,
-  playerId: string,
-  cardIndex: number,
-  chosenColor?: string,
-): Promise<{ winner?: string }> => {
+const runGameAction = async ({
+  gameId,
+  playerId,
+  action,
+}: {
+  gameId: string;
+  playerId: string;
+  action: RuleContext["action"];
+}): Promise<{ winnerId?: string; cardsDrawn: Card[] }> => {
   return await db.runTransaction(async (t) => {
     // IMPORTANT: Do ALL reads before ANY writes (Firestore transaction requirement)
     const game = await getGame(gameId, t);
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const player = await getGamePlayer(gameId, playerId, t);
 
-    // Fetch all player hands for rules (needed by finalize-rule and future rules)
+    // Fetch all player hands for rules (needed by finalize-rule and draw logic)
     const allPlayerHands = await getPlayerHands(gameId, game.players, t);
 
     const pipeline = createDefaultRulePipeline();
     const ruleContext: RuleContext = {
       gameId,
       playerId,
-      action: { type: "play", cardIndex, chosenColor },
+      action,
       game,
       player,
       playerHand,
@@ -737,14 +609,14 @@ export const playCard = async (
       t.update(gameRef(gameId), gameUpdates);
     }
 
-    for (const [playerId, updates] of Object.entries(playerUpdates)) {
+    for (const [targetPlayerId, updates] of Object.entries(playerUpdates)) {
       if (Object.keys(updates).length > 0) {
-        t.update(playerRef(gameId, playerId), updates);
+        t.update(playerRef(gameId, targetPlayerId), updates);
       }
     }
 
-    for (const [playerId, hand] of Object.entries(handUpdates)) {
-      t.update(playerHandRef(gameId, playerId), { hand });
+    for (const [targetPlayerId, hand] of Object.entries(handUpdates)) {
+      t.update(playerHandRef(gameId, targetPlayerId), { hand });
     }
 
     // Finalize game if there's a winner
@@ -752,8 +624,26 @@ export const playCard = async (
       await finalizeGame(gameId, winnerId, t, preFetchedData);
     }
 
-    return winnerId ? { winner: winnerId } : {};
+    return {
+      winnerId,
+      cardsDrawn: [...applyResult.cardsDrawn, ...finalizeResult.cardsDrawn],
+    };
   });
+};
+
+export const playCard = async (
+  gameId: string,
+  playerId: string,
+  cardIndex: number,
+  chosenColor?: string,
+): Promise<{ winner?: string }> => {
+  const result = await runGameAction({
+    gameId,
+    playerId,
+    action: { type: "play", cardIndex, chosenColor },
+  });
+
+  return result.winnerId ? { winner: result.winnerId } : {};
 };
 
 export const drawCard = async (
@@ -761,196 +651,23 @@ export const drawCard = async (
   playerId: string,
   count: number,
 ): Promise<{ cards: Card[] }> => {
-  return await db.runTransaction(async (t) => {
-    const game = await getGame(gameId, t);
-
-    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
-      throw new Error(`Game ${gameId} is not in progress`);
-    }
-
-    const currentIndex = game.players.indexOf(playerId);
-    if (currentIndex < 0) {
-      throw new Error(`Player ${playerId} is not in game ${gameId}`);
-    }
-
-    if (game.state.currentTurnPlayerId !== playerId) {
-      throw new Error("Not your turn");
-    }
-
-    const playerHand = await getPlayerHand(gameId, playerId, t);
-    const player = await getGamePlayer(gameId, playerId, t);
-    const playerHands = await getPlayerHands(gameId, game.players, t);
-    const isPenaltyDraw = game.state.mustDraw > 0;
-    const isDrawToMatchEnabled =
-      !isPenaltyDraw && game.config.houseRules.includes("drawToMatch");
-
-    let drawnCards: Card[] = [];
-    let deckSeed = game.state.deckSeed;
-    let drawPileCount = game.state.drawPileCount;
-    let discardPile = game.state.discardPile;
-    let currentPlayerHands = playerHands;
-
-    if (isPenaltyDraw) {
-      // Penalty draw: draw exact count
-      const result = drawCardsFromDeck({
-        seed: deckSeed,
-        discardPile,
-        playerHands: currentPlayerHands,
-        count: game.state.mustDraw,
-      });
-      drawnCards = result.drawnCards;
-      deckSeed = result.deckSeed;
-      drawPileCount = result.drawPileCount;
-      discardPile = result.discardPile;
-    } else if (isDrawToMatchEnabled) {
-      // Draw to Match: keep drawing until playable card found or deck exhausted
-      const topCard = getTopCard(game.state.discardPile);
-      const maxDraws = 50; // Safety limit to prevent infinite loops
-      let drawAttempts = 0;
-
-      while (drawAttempts < maxDraws) {
-        let cardsToDrawThisTime: Card[];
-        try {
-          const result = drawCardsFromDeck({
-            seed: deckSeed,
-            discardPile,
-            playerHands: currentPlayerHands,
-            count: 1,
-          });
-          cardsToDrawThisTime = result.drawnCards;
-          deckSeed = result.deckSeed;
-          drawPileCount = result.drawPileCount;
-          discardPile = result.discardPile;
-
-          // Update player hands for next iteration
-          const currentHand = currentPlayerHands[playerId];
-          if (!currentHand) {
-            throw new Error("Player hand not found");
-          }
-          currentPlayerHands = {
-            ...currentPlayerHands,
-            [playerId]: {
-              hand: [...currentHand.hand, ...cardsToDrawThisTime],
-            },
-          };
-        } catch {
-          // Deck exhausted - stop drawing
-          break;
-        }
-
-        drawnCards.push(...cardsToDrawThisTime);
-        drawAttempts++;
-
-        // Check if the last drawn card is playable
-        const lastDrawn = cardsToDrawThisTime[0];
-        if (!lastDrawn) {
-          break;
-        }
-        if (
-          isCardPlayable(
-            lastDrawn,
-            topCard,
-            game.state.currentColor,
-            0,
-            game.config.houseRules,
-          )
-        ) {
-          // Found a playable card - stop drawing
-          break;
-        }
-      }
-    } else {
-      // Normal draw: draw requested count
-      const result = drawCardsFromDeck({
-        seed: deckSeed,
-        discardPile,
-        playerHands: currentPlayerHands,
-        count,
-      });
-      drawnCards = result.drawnCards;
-      deckSeed = result.deckSeed;
-      drawPileCount = result.drawPileCount;
-      discardPile = result.discardPile;
-    }
-
-    const newHand = [...playerHand.hand, ...drawnCards];
-    const now = new Date().toISOString();
-
-    // Only pass turn if this is a penalty draw
-    const nextPlayerId = isPenaltyDraw
-      ? getNextPlayerId(game.players, currentIndex, game.state.direction, false)
-      : playerId;
-
-    t.update(gameRef(gameId), {
-      "state.deckSeed": deckSeed,
-      "state.drawPileCount": drawPileCount,
-      "state.discardPile": discardPile,
-      "state.currentTurnPlayerId": nextPlayerId,
-      "state.mustDraw": 0,
-      lastActivityAt: now,
-    });
-
-    t.update(playerHandRef(gameId, playerId), { hand: newHand });
-    t.update(playerRef(gameId, playerId), {
-      cardCount: newHand.length,
-      status: "active",
-      hasCalledUno: false,
-      mustCallUno: false,
-      "gameStats.cardsDrawn": player.gameStats.cardsDrawn + drawnCards.length,
-      "gameStats.turnsPlayed":
-        player.gameStats.turnsPlayed + (isPenaltyDraw ? 1 : 0),
-      lastActionAt: now,
-    });
-
-    return { cards: drawnCards };
+  const result = await runGameAction({
+    gameId,
+    playerId,
+    action: { type: "draw", count },
   });
+
+  return { cards: result.cardsDrawn };
 };
 
 export const passTurn = async (
   gameId: string,
   playerId: string,
 ): Promise<void> => {
-  return await db.runTransaction(async (t) => {
-    const game = await getGame(gameId, t);
-
-    if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
-      throw new Error(`Game ${gameId} is not in progress`);
-    }
-
-    const currentIndex = game.players.indexOf(playerId);
-    if (currentIndex < 0) {
-      throw new Error(`Player ${playerId} is not in game ${gameId}`);
-    }
-
-    if (game.state.currentTurnPlayerId !== playerId) {
-      throw new Error("Not your turn");
-    }
-
-    // Cannot pass if there's a draw penalty
-    if (game.state.mustDraw > 0) {
-      throw new Error("You must draw cards before passing");
-    }
-
-    const now = new Date().toISOString();
-    const nextPlayerId = getNextPlayerId(
-      game.players,
-      currentIndex,
-      game.state.direction,
-      false,
-    );
-    const player = await getGamePlayer(gameId, playerId, t);
-
-    t.update(gameRef(gameId), {
-      "state.currentTurnPlayerId": nextPlayerId,
-      lastActivityAt: now,
-    });
-
-    t.update(playerRef(gameId, playerId), {
-      hasCalledUno: false,
-      mustCallUno: false,
-      "gameStats.turnsPlayed": player.gameStats.turnsPlayed + 1,
-      lastActionAt: now,
-    });
+  await runGameAction({
+    gameId,
+    playerId,
+    action: { type: "pass" },
   });
 };
 

@@ -7,5 +7,5 @@ export const createPlayActionRule = (): Rule => ({
     // Placeholder: keep existing validation in game-service.ts for now.
     // TODO: move play-specific validation here during rule extraction.
   },
-  apply: (): RuleResult => ({ effects: [] }),
+  apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),
 });

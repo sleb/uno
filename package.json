@@ -5,6 +5,7 @@
     "packages/*"
   ],
   "scripts": {
+    "test": "bun test --timeout 20000",
     "test:e2e": "firebase emulators:exec --import .emulator 'bun run playwright test'",
     "test:e2e:ui": "firebase emulators:exec --import .emulator 'bun run playwright test --ui'",
     "verify:emulator-users": "bun run scripts/verify-emulator-users.ts"
