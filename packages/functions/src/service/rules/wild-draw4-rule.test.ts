@@ -84,6 +84,18 @@ describe("wild draw4 rule", () => {
     expect(() => rule.validate?.(context)).not.toThrow();
   });
 
+  test("canHandle returns true for wild draw4 cards", () => {
+    const rule = createWildDraw4Rule();
+    const context = createContext({
+      action: { type: "play", cardIndex: 0 },
+      playerHand: createHand({
+        hand: [{ kind: "wild", value: "wild_draw4" }],
+      }),
+    });
+
+    expect(rule.canHandle(context)).toBe(true);
+  });
+
   test("allows wild draw4 even when player has matching color", () => {
     const rule = createWildDraw4Rule();
     const context = createContext({
@@ -119,7 +131,7 @@ describe("wild draw4 rule", () => {
     expect(() => rule.validate?.(context)).toThrow("Invalid card index");
   });
 
-  test("throws for non-wild card types", () => {
+  test("does not handle non-wild card types", () => {
     const rule = createWildDraw4Rule();
     const context = createContext({
       action: { type: "play", cardIndex: 0 },
@@ -128,9 +140,7 @@ describe("wild draw4 rule", () => {
       }),
     });
 
-    // This rule only validates Wild Draw Four, so other card types should throw
-    expect(() => rule.validate?.(context)).toThrow(
-      "This rule only handles Wild Draw Four cards",
-    );
+    // canHandle should return false for non-wild cards
+    expect(rule.canHandle(context)).toBe(false);
   });
 });
