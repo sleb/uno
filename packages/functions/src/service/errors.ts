@@ -14,6 +14,7 @@
 
 import type { ErrorCode, ErrorResponse } from "@uno/shared";
 import {
+  AuthError,
   errorCodeToHttpsErrorCode,
   isUnoError,
   parseErrorResponse,
@@ -228,7 +229,6 @@ export function withErrorHandling<T>(
 export function requireAuth(request: CallableRequest<unknown>): string {
   const uid = request.auth?.uid;
   if (!uid) {
-    const { AuthError, ErrorCode } = require("@uno/shared");
     throw new AuthError(
       ErrorCode.UNAUTHENTICATED,
       "User must be authenticated",

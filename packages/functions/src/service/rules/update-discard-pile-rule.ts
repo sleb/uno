@@ -1,4 +1,4 @@
-import { GAME_STATUSES } from "@uno/shared";
+import { ErrorCode, GAME_STATUSES, ValidationError } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
 /**
@@ -29,7 +29,11 @@ export const createUpdateDiscardPileRule = (): Rule => ({
 
     const playedCard = playerHand.hand[cardIndex];
     if (!playedCard) {
-      throw new Error("Invalid card index");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "Invalid card index",
+        { cardIndex },
+      );
     }
 
     const updatedDiscardPile = [...game.state.discardPile, playedCard];

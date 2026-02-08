@@ -1,15 +1,19 @@
 import {
   type Card,
   type CreateGameRequest,
+  ErrorCode,
   GAME_STATUSES,
   type GameData,
   GameDataSchema,
   type GameFinalScores,
   type GamePlayerData,
   GamePlayerDataSchema,
+  GameStateError,
+  InternalError,
   type PlayerHandData,
   PlayerHandDataSchema,
   type PlayerScore,
+  ResourceError,
   type UserData,
   UserDataSchema,
   type UserStats,
@@ -55,7 +59,11 @@ const getGame = async (gameId: string, t?: Transaction): Promise<GameData> => {
   const snapshot = await getDoc(gameRef(gameId), t);
 
   if (!snapshot.exists) {
-    throw new Error(`Game ${gameId} not found`);
+    throw new GameStateError(
+      ErrorCode.GAME_NOT_FOUND,
+      `Game ${gameId} not found`,
+      { gameId },
+    );
   }
 
   return GameDataSchema.parse(snapshot.data());
@@ -68,7 +76,11 @@ const getUser = async (
   const snapshot = await getDoc(userRef(userId), transaction);
 
   if (!snapshot.exists) {
-    throw new Error(`User ${userId} not found`);
+    throw new GameStateError(
+      ErrorCode.USER_NOT_FOUND,
+      `User ${userId} not found`,
+      { userId },
+    );
   }
 
   return UserDataSchema.parse(snapshot.data());
@@ -102,7 +114,11 @@ export const getGamePlayer = async (
   const snapshot = await getDoc(playerRef(gameId, playerId), t);
 
   if (!snapshot.exists) {
-    throw new Error(`Player ${playerId} not found in game ${gameId}`);
+    throw new GameStateError(
+      ErrorCode.PLAYER_NOT_FOUND,
+      `Player ${playerId} not found in game ${gameId}`,
+      { gameId, playerId },
+    );
   }
 
   return GamePlayerDataSchema.parse(snapshot.data());
@@ -116,7 +132,11 @@ const getPlayerHand = async (
   const snapshot = await getDoc(playerHandRef(gameId, playerId), t);
 
   if (!snapshot.exists) {
-    throw new Error(`Player hand for ${playerId} not found in game ${gameId}`);
+    throw new GameStateError(
+      ErrorCode.PLAYER_NOT_FOUND,
+      `Player hand for ${playerId} not found in game ${gameId}`,
+      { gameId, playerId },
+    );
   }
 
   return PlayerHandDataSchema.parse(snapshot.data());
@@ -201,8 +221,10 @@ export const detectEffectConflicts = (
         const valueKey = stableJsonStringify(value);
         const existing = gameUpdateSources.get(key);
         if (existing && existing.valueKey !== valueKey) {
-          throw new Error(
+          throw new InternalError(
+            ErrorCode.EFFECT_CONFLICT,
             `Effect conflict: game.${key} updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+            { key, existing: existing.sourceRule, current: sourceRule },
           );
         }
         gameUpdateSources.set(key, { valueKey, sourceRule });
@@ -219,8 +241,10 @@ export const detectEffectConflicts = (
 
       const playerSources = playerUpdateSources.get(effect.playerId);
       if (!playerSources) {
-        throw new Error(
+        throw new InternalError(
+          ErrorCode.INTERNAL_ERROR,
           `Internal error: playerUpdateSources not initialized for ${effect.playerId}`,
+          { playerId: effect.playerId },
         );
       }
 
@@ -228,8 +252,15 @@ export const detectEffectConflicts = (
         const valueKey = stableJsonStringify(value);
         const existing = playerSources.get(key);
         if (existing && existing.valueKey !== valueKey) {
-          throw new Error(
+          throw new InternalError(
+            ErrorCode.EFFECT_CONFLICT,
             `Effect conflict: players[${effect.playerId}].${key} updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+            {
+              playerId: effect.playerId,
+              key,
+              existing: existing.sourceRule,
+              current: sourceRule,
+            },
           );
         }
         playerSources.set(key, { valueKey, sourceRule });
@@ -240,8 +271,14 @@ export const detectEffectConflicts = (
       const valueKey = stableJsonStringify(effect.hand);
       const existing = handUpdateSources.get(effect.playerId);
       if (existing && existing.valueKey !== valueKey) {
-        throw new Error(
+        throw new InternalError(
+          ErrorCode.EFFECT_CONFLICT,
           `Effect conflict: playerHands[${effect.playerId}] updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+          {
+            playerId: effect.playerId,
+            existing: existing.sourceRule,
+            current: sourceRule,
+          },
         );
       }
       handUpdateSources.set(effect.playerId, { valueKey, sourceRule });
@@ -319,11 +356,19 @@ export const addPlayerToGame = async (gameId: string, userId: string) => {
     }
 
     if (status !== "waiting") {
-      throw new Error(`Game ${gameId} has already started or completed`);
+      throw new GameStateError(
+        ErrorCode.GAME_NOT_IN_PROGRESS,
+        `Game ${gameId} has already started or completed`,
+        { gameId, status },
+      );
     }
 
     if (players.length >= maxPlayers) {
-      throw new Error(`Game ${gameId} is full`);
+      throw new GameStateError(
+        ErrorCode.MAX_PLAYERS_REACHED,
+        `Game ${gameId} is full`,
+        { gameId, maxPlayers },
+      );
     }
 
     const updatedPlayers = [...players, userId];
@@ -369,17 +414,27 @@ export const startGame = async (gameId: string): Promise<void> => {
     } = game;
 
     if (status !== "waiting") {
-      throw new Error(`Game ${gameId} is not in waiting status`);
+      throw new GameStateError(
+        ErrorCode.GAME_NOT_IN_PROGRESS,
+        `Game ${gameId} is not in waiting status`,
+        { gameId, status },
+      );
     }
 
     if (players.length < 2) {
-      throw new Error("Game must have at least 2 players to start");
+      throw new GameStateError(
+        ErrorCode.MIN_PLAYERS_NOT_MET,
+        "Game must have at least 2 players to start",
+        { gameId, playerCount: players.length },
+      );
     }
 
     const totalCardsToDeal = players.length * CARDS_PER_PLAYER;
     if (drawPileCount <= totalCardsToDeal) {
-      throw new Error(
+      throw new ResourceError(
+        ErrorCode.DECK_EXHAUSTED,
         `Not enough cards in deck: need more than ${totalCardsToDeal}, have ${drawPileCount}`,
+        { gameId, required: totalCardsToDeal, available: drawPileCount },
       );
     }
 
@@ -422,7 +477,11 @@ export const startGame = async (gameId: string): Promise<void> => {
     while (remainingDrawPileCount > 0) {
       const [nextCard] = await dealCards(deckSeed, remainingDrawPileCount, 1);
       if (!nextCard) {
-        throw new Error("Failed to draw a starting card.");
+        throw new ResourceError(
+          ErrorCode.DECK_EXHAUSTED,
+          "Failed to draw a starting card.",
+          { gameId },
+        );
       }
       remainingDrawPileCount -= 1;
       startingDiscardPile.push(nextCard);
@@ -434,8 +493,10 @@ export const startGame = async (gameId: string): Promise<void> => {
     }
 
     if (!startingCard) {
-      throw new Error(
+      throw new ResourceError(
+        ErrorCode.DECK_EXHAUSTED,
         "Not enough cards in deck to draw a starting number card.",
+        { gameId },
       );
     }
 
@@ -779,12 +840,20 @@ export const callUno = async (
     const game = await getGame(gameId, t);
 
     if (game.state.status !== GAME_STATUSES.IN_PROGRESS) {
-      throw new Error(`Game ${gameId} is not in progress`);
+      throw new GameStateError(
+        ErrorCode.GAME_NOT_IN_PROGRESS,
+        `Game ${gameId} is not in progress`,
+        { gameId, status: game.state.status },
+      );
     }
 
     const currentIndex = game.players.indexOf(playerId);
     if (currentIndex < 0) {
-      throw new Error(`Player ${playerId} is not in game ${gameId}`);
+      throw new GameStateError(
+        ErrorCode.PLAYER_NOT_FOUND,
+        `Player ${playerId} is not in game ${gameId}`,
+        { gameId, playerId },
+      );
     }
     const playerHand = await getPlayerHand(gameId, playerId, t);
     const now = new Date().toISOString();
@@ -805,7 +874,11 @@ export const callUno = async (
     );
 
     if (!targetEntry) {
-      throw new Error("No player to catch for UNO");
+      throw new GameStateError(
+        ErrorCode.INTERNAL_ERROR,
+        "No player to catch for UNO",
+        { gameId, playerId },
+      );
     }
 
     const [targetId, targetPlayer] = targetEntry;
@@ -813,8 +886,10 @@ export const callUno = async (
     const targetHand = playerHands[targetId];
 
     if (!targetHand) {
-      throw new Error(
+      throw new GameStateError(
+        ErrorCode.PLAYER_NOT_FOUND,
         `Player hand for ${targetId} not found in game ${gameId}`,
+        { gameId, playerId: targetId },
       );
     }
 

@@ -1,3 +1,4 @@
+import { ErrorCode, ValidationError } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
 export const createPassActionValidateRule = (): Rule => ({
@@ -12,7 +13,11 @@ export const createPassActionValidateRule = (): Rule => ({
     }
 
     if (ctx.game.state.mustDraw > 0) {
-      throw new Error("You must draw cards before passing");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "You must draw cards before passing",
+        {},
+      );
     }
   },
 

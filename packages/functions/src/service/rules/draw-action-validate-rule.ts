@@ -1,3 +1,4 @@
+import { ErrorCode, ValidationError } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
 export const createDrawActionValidateRule = (): Rule => ({
@@ -12,7 +13,11 @@ export const createDrawActionValidateRule = (): Rule => ({
     }
 
     if (ctx.action.count < 1) {
-      throw new Error("Draw count must be at least 1");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "Draw count must be at least 1",
+        { count: ctx.action.count },
+      );
     }
   },
 

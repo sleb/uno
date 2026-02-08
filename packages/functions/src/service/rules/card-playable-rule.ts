@@ -1,4 +1,5 @@
 import type { Card } from "@uno/shared";
+import { ErrorCode, ValidationError } from "@uno/shared";
 import { isCardPlayable } from "../card-validation";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
@@ -6,7 +7,11 @@ const getTopCard = (discardPile: Card[]): Card => {
   const topCard = discardPile[discardPile.length - 1];
 
   if (!topCard) {
-    throw new Error("Discard pile is empty");
+    throw new ValidationError(
+      ErrorCode.INVALID_ACTION,
+      "Discard pile is empty",
+      {},
+    );
   }
 
   return topCard;
@@ -23,7 +28,11 @@ export const createCardPlayableRule = (): Rule => ({
     const playedCard = context.playerHand.hand[context.action.cardIndex];
 
     if (!playedCard) {
-      throw new Error("Invalid card index");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "Invalid card index",
+        { cardIndex: context.action.cardIndex },
+      );
     }
 
     const topCard = getTopCard(context.game.state.discardPile);
@@ -38,7 +47,11 @@ export const createCardPlayableRule = (): Rule => ({
         context.game.config.houseRules,
       )
     ) {
-      throw new Error("Card cannot be played");
+      throw new ValidationError(
+        ErrorCode.CARD_CANNOT_BE_PLAYED,
+        "Card cannot be played",
+        { playedCard, topCard },
+      );
     }
   },
   apply: (): RuleResult => ({ effects: [], cardsDrawn: [] }),

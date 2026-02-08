@@ -1,3 +1,4 @@
+import { ErrorCode, ValidationError } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
 /**
@@ -28,7 +29,11 @@ export const createUpdatePlayerStatsRule = (): Rule => ({
 
     const playedCard = playerHand.hand[cardIndex];
     if (!playedCard) {
-      throw new Error("Invalid card index");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "Invalid card index",
+        { cardIndex },
+      );
     }
 
     const newHandSize = playerHand.hand.length - 1;

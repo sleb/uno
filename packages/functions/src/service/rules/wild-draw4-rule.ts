@@ -1,3 +1,4 @@
+import { ErrorCode, ValidationError } from "@uno/shared";
 import type { Rule, RuleContext, RuleResult } from "./types";
 
 export const createWildDraw4Rule = (): Rule => ({
@@ -11,12 +12,20 @@ export const createWildDraw4Rule = (): Rule => ({
     const playedCard = context.playerHand.hand[context.action.cardIndex];
 
     if (!playedCard) {
-      throw new Error("Invalid card index");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "Invalid card index",
+        { cardIndex: context.action.cardIndex },
+      );
     }
 
     // Verify the card is actually a Wild Draw Four (even though rule is permissive)
     if (playedCard.kind !== "wild" || playedCard.value !== "wild_draw4") {
-      throw new Error("This rule only handles Wild Draw Four cards");
+      throw new ValidationError(
+        ErrorCode.INVALID_ACTION,
+        "This rule only handles Wild Draw Four cards",
+        { card: playedCard },
+      );
     }
 
     // Wild Draw Four can now be played at any time, no restriction on matching colors
