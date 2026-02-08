@@ -1,14 +1,14 @@
 import {
-  Button,
-  Card,
-  Center,
-  Divider,
-  Group,
-  Radio,
-  Stack,
-  Switch,
-  Text,
-  Title,
+    Button,
+    Card,
+    Center,
+    Divider,
+    Group,
+    Radio,
+    Stack,
+    Switch,
+    Text,
+    Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { HouseRuleSchema } from "@uno/shared";
@@ -23,9 +23,6 @@ type FormValues = {
   maxPlayers: number;
   houseRules: {
     stacking: boolean;
-    jumpIn: boolean;
-    sevenSwap: boolean;
-    zeroRotation: boolean;
     drawToMatch: boolean;
   };
 };
@@ -60,9 +57,6 @@ const CreateGameForm = () => {
         maxPlayers: 4,
         houseRules: {
           stacking: false,
-          jumpIn: false,
-          sevenSwap: false,
-          zeroRotation: false,
           drawToMatch: false,
         },
       },
@@ -134,36 +128,6 @@ const CreateGameForm = () => {
                   onChange={(e) =>
                     setFieldValue(
                       "houseRules.stacking",
-                      e.currentTarget.checked,
-                    )
-                  }
-                />
-                <Switch
-                  key={key("houseRules.jumpIn")}
-                  label="Jump In (play identical card out of turn)"
-                  checked={getValues().houseRules.jumpIn}
-                  onChange={(e) =>
-                    setFieldValue("houseRules.jumpIn", e.currentTarget.checked)
-                  }
-                />
-                <Switch
-                  key={key("houseRules.sevenSwap")}
-                  label="Seven Swap (playing 7 swaps hands)"
-                  checked={getValues().houseRules.sevenSwap}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "houseRules.sevenSwap",
-                      e.currentTarget.checked,
-                    )
-                  }
-                />
-                <Switch
-                  key={key("houseRules.zeroRotation")}
-                  label="Zero Rotation (playing 0 rotates hands)"
-                  checked={getValues().houseRules.zeroRotation}
-                  onChange={(e) =>
-                    setFieldValue(
-                      "houseRules.zeroRotation",
                       e.currentTarget.checked,
                     )
                   }

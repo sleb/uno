@@ -74,13 +74,7 @@ export const CardSchema = z.discriminatedUnion("kind", [
   WildCardSchema,
 ]);
 
-export const HouseRuleSchema = z.enum([
-  "stacking",
-  "jumpIn",
-  "sevenSwap",
-  "drawToMatch",
-  "zeroRotation",
-]);
+export const HouseRuleSchema = z.enum(["stacking", "drawToMatch"]);
 
 export const GameDataSchema = z.object({
   createdAt: z.iso.datetime(),

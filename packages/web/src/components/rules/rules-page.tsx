@@ -338,61 +338,6 @@ const RulesPage = () => {
 
                 <div>
                   <Title order={3} size="h4" mb="xs">
-                    Jump-In
-                  </Title>
-                  <Text mb="sm">Same rules as UNO card game, except:</Text>
-                  <Text mb="sm">
-                    If you are holding the exact same card (identical color and
-                    number) as the card on top of Discard Pile, you may play it
-                    immediately, regardless of whose turn it is. Play resumes
-                    from the player who played the last card (the player who
-                    "jumped in").
-                  </Text>
-                  <Text>
-                    <strong>Two important things to remember:</strong>
-                  </Text>
-                  <ol>
-                    <li>
-                      If you have 2 matching cards in your hand, you may play
-                      them back-to-back, but they must be played one at a time.
-                      This gives another player a chance to 'jump in' and stop
-                      you from playing a second card.
-                    </li>
-                    <li>
-                      If you "jump in" with a Skip, Reverse, Draw Two or Wild
-                      Draw Four, the second identical card played cancels out
-                      the first.
-                    </li>
-                  </ol>
-                </div>
-
-                <div>
-                  <Title order={3} size="h4" mb="xs">
-                    Zero Rotation
-                  </Title>
-                  <Text>
-                    Same rules as UNO card game, except: Every time a "0" card
-                    is played, all players pass their hands to the next player
-                    in the direction of play. The player who played the "0" card
-                    continues play.
-                  </Text>
-                </div>
-
-                <div>
-                  <Title order={3} size="h4" mb="xs">
-                    Seven Swap
-                  </Title>
-                  <Text>
-                    Same rules as UNO card game, except: Every time a "7" card
-                    is played, the player who played the "7" card must trade
-                    their entire hand with another player of their choice (the
-                    chosen player does not have a choice in the matter). Play
-                    continues after the swap.
-                  </Text>
-                </div>
-
-                <div>
-                  <Title order={3} size="h4" mb="xs">
                     Draw to Match
                   </Title>
                   <Text>
