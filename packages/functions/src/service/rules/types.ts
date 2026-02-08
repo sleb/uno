@@ -86,6 +86,12 @@ export type RuleResult = {
 export type Rule = {
   name: string;
   phase: "pre-validate" | "validate" | "apply" | "finalize";
+  /**
+   * List of context fields this rule depends on
+   * Used for documentation and future dependency validation
+   * Example: ["game", "playerHand", "player"]
+   */
+  dependencies?: (keyof RuleContext)[];
   canHandle: (context: RuleContext) => boolean;
   validate?: (context: RuleContext) => void;
   apply: (context: RuleContext) => RuleResult;

@@ -1,6 +1,14 @@
+import { validateEffect } from "./effect-validation";
 import type { RulePipeline, RulePipelinePhase } from "./registry";
 import type { RuleContext, RuleResult } from "./types";
 
+/**
+ * Execute rules for a specific phase with debug logging and validation
+ * @param pipeline The rule pipeline
+ * @param phase The phase to execute
+ * @param context The rule execution context
+ * @returns Aggregated effects and cards drawn
+ */
 export const applyRulePhase = (
   pipeline: RulePipeline,
   phase: RulePipelinePhase,
@@ -11,10 +19,14 @@ export const applyRulePhase = (
   const shouldValidate = phase === "pre-validate" || phase === "validate";
   const shouldApply = phase === "apply";
 
+  const executedRules: string[] = [];
+
   for (const rule of pipeline[phase]) {
     if (!rule.canHandle(context)) {
       continue;
     }
+
+    executedRules.push(rule.name);
 
     if (shouldValidate) {
       rule.validate?.(context);
@@ -22,9 +34,22 @@ export const applyRulePhase = (
 
     if (shouldApply) {
       const result = rule.apply(context);
+
+      // Validate effects have valid field names
+      for (const effect of result.effects) {
+        validateEffect(effect);
+      }
+
       effects.push(...result.effects);
       cardsDrawn = [...cardsDrawn, ...result.cardsDrawn];
     }
+  }
+
+  // Log rule execution for debugging (only when rules execute)
+  if (executedRules.length > 0) {
+    console.debug(
+      `[Pipeline] ${phase} phase executed: ${executedRules.join(", ")}`,
+    );
   }
 
   return { effects, cardsDrawn };
@@ -44,17 +69,33 @@ export const applyFinalizePhase = async (
 ): Promise<RuleResult> => {
   const effects = [] as RuleResult["effects"];
   let cardsDrawn: RuleResult["cardsDrawn"] = [];
+  const executedRules: string[] = [];
 
   for (const rule of pipeline.finalize) {
     if (!rule.canHandle(context)) {
       continue;
     }
 
+    executedRules.push(rule.name);
+
     if (rule.finalize) {
       const result = await rule.finalize(context);
+
+      // Validate effects have valid field names
+      for (const effect of result.effects) {
+        validateEffect(effect);
+      }
+
       effects.push(...result.effects);
       cardsDrawn = [...cardsDrawn, ...result.cardsDrawn];
     }
+  }
+
+  // Log rule execution for debugging (only when rules execute)
+  if (executedRules.length > 0) {
+    console.debug(
+      `[Pipeline] finalize phase executed: ${executedRules.join(", ")}`,
+    );
   }
 
   return { effects, cardsDrawn };
