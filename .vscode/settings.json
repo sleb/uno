@@ -2,6 +2,7 @@
   "chat.tools.terminal.autoApprove": {
     "bun": true,
     "firebase": true,
-    "lsof": true
+    "lsof": true,
+    "npx biome": true
   }
 }
