@@ -2,11 +2,20 @@
 
 ## Current Status
 
-**MVP Game Setup: ✅ Complete**  
-**Core Gameplay: ✅ Complete**  
+**MVP Game Setup: ✅ Complete**
+**Core Gameplay: ✅ Complete**
 **Game Completion: ✅ Complete**
+**House Rules (Partial): ⏳ In Progress** (Stacking ✅, Draw to Match ✅, 3 pending)
+**Documentation: ✅ Reorganized**
 
-Players can create, join, and start games. **All core gameplay is now functional** - players can play cards, draw cards, call UNO, and finish games. The game enforces turn order, validates card plays, handles special cards (Skip, Reverse, Draw Two, Wild cards), manages deck exhaustion with reshuffling, and declares winners. **Game completion features are fully implemented** - final scores calculated with official UNO rules, user statistics tracked, winner celebration with confetti, profile stats display, and dashboard filtering.
+Players can create, join, and start games with **full core gameplay** - play cards, draw cards, call UNO, finish games. Turn order enforcement, card validation, special cards (Skip, Reverse, Draw Two, Wild), deck exhaustion with reshuffling, and winner declaration all working. **Game completion fully implemented** - final scores per official rules, user statistics tracked, winner celebration with confetti, profile stats display, dashboard filtering.
+
+**House Rules Progress:** 2 of 5 rules complete:
+- ✅ **Stacking** (63+ tests) — Stack Draw Two/Wild Draw Four to accumulate penalties
+- ✅ **Draw to Match** (9 tests) — Keep drawing until playable card found
+- ⏳ **Jump-In, Seven Swap, Zero Rotation** — Test infrastructure ready, implementation pending
+
+**Documentation:** Recently reorganized for three audiences (players, human developers, AI agents). Consolidated 5 house rules docs into organized directory. Deleted 9 temporary/phase-completion docs.
 
 ---
 
@@ -16,7 +25,7 @@ Players can create, join, and start games. **All core gameplay is now functional
 
 **Cloud Functions:**
 - `createGame` - Create new games with configuration (private/public, max players, house rules)
-- `joinGame` - Join existing games  
+- `joinGame` - Join existing games
 - `startGame` - Start game when all players are ready
 - `playCard` - Validate and execute card plays with full rules enforcement
 - `drawCard` - Draw cards from deck with reshuffle support
@@ -153,35 +162,55 @@ Players can create, join, and start games. **All core gameplay is now functional
 
 ---
 
-### 🟢 **Phase 3: House Rules** (Medium Priority)
+### � **Phase 3: House Rules** (In Progress)
 
 **Goal:** Implement optional house rules variants from GAME_RULES.md.
 
-**House Rules to Implement:**
-- [ ] **Stacking** - Stack Draw Two or Wild Draw Four cards
-  - Modify `playCard` to allow stacking
-  - Track accumulated draw count in game state
-  - Last player in chain draws all accumulated cards
-- [ ] **Jump-In** - Play identical card out of turn
-  - New Cloud Function: `jumpIn(gameId, cardIndex)`
-  - Validate exact card match (color + value)
-  - Insert player into turn order after jump-in
-- [ ] **Seven Swap** - Trade hands when playing a 7
-  - UI to select target player
-  - Atomic swap of player hands
-  - Update cardCounts for both players
-- [ ] **Draw to Match** - Keep drawing until playable card found
-  - Modify `drawCard` logic
-  - Auto-play when match is drawn (optional)
-- [ ] **Zero Rotation** - Rotate all hands when 0 is played
-  - Atomic rotation of all player hands
-  - Update cardCounts for all players
+**House Rules Status:**
+- [x] **Stacking** - Stack Draw Two or Wild Draw Four cards ✅ COMPLETE
+  - [x] `playCard` allows stacking when rule enabled
+  - [x] Track accumulated draw count in game state
+  - [x] Last player in chain draws all accumulated cards
+  - [x] 46 unit tests + 6 integration tests (all passing)
+  - [x] Frontend card highlighting respects rule
+  - See [docs/HOUSE_RULES/IMPLEMENTATION_STATUS.md](docs/HOUSE_RULES/IMPLEMENTATION_STATUS.md)
+
+- [x] **Draw to Match** - Keep drawing until playable card found ✅ COMPLETE
+  - [x] `drawCard` loops drawing until playable or deck exhausted
+  - [x] Only applies to voluntary draws (not penalty draws)
+  - [x] Safety limit (50 cards) prevents infinite loops
+  - [x] 5 unit tests + 4 integration tests (all passing)
+  - See [docs/HOUSE_RULES/IMPLEMENTATION_STATUS.md](docs/HOUSE_RULES/IMPLEMENTATION_STATUS.md)
+
+- [ ] **Jump-In** - Play identical card out of turn ⏳ PENDING
+  - [ ] New Cloud Function: `jumpIn(gameId, cardIndex)`
+  - [ ] Validate exact card match (color + value)
+  - [ ] Insert player into turn order after jump-in
+  - [ ] Test infrastructure ready (stubs in place)
+  - [ ] Most complex due to rule interactions
+
+- [ ] **Seven Swap** - Trade hands when playing a 7 ⏳ PENDING
+  - [ ] Modify `playCard` to detect value === 7
+  - [ ] UI to select target player
+  - [ ] Atomic swap of player hands
+  - [ ] Test infrastructure ready (stubs in place)
+
+- [ ] **Zero Rotation** - Rotate all hands when 0 is played ⏳ PENDING
+  - [ ] Modify `playCard` to detect value === 0
+  - [ ] Atomic rotation of all player hands
+  - [ ] Test infrastructure ready (stubs in place)
 
 **UI for House Rules:**
-- [ ] House rules configuration in Create Game modal
-- [ ] Visual indicators when house rules are active
+- [x] House rules configuration in Create Game modal
+- [x] Visual indicators when house rules are active (Stacking + Draw to Match working)
 - [ ] Tooltips/help text explaining each rule
 - [ ] Display active house rules in game room
+
+**Documentation:**
+- [x] Complete house rules documentation in `docs/HOUSE_RULES/`
+  - See [docs/HOUSE_RULES/README.md](docs/HOUSE_RULES/README.md) for overview
+  - See [docs/HOUSE_RULES/TESTING_STRATEGY.md](docs/HOUSE_RULES/TESTING_STRATEGY.md) for test status
+  - See [docs/HOUSE_RULES/RULE_DETAILS.md](docs/HOUSE_RULES/RULE_DETAILS.md) for implementation guide
 
 ---
 
@@ -311,34 +340,52 @@ These ideas are not currently planned but could be considered in the future:
 
 ## Next Steps
 
-**Immediate Priority:** Begin **Phase 3: House Rules**. The core game is fully functional with scoring and stats. Now we can add optional gameplay variants.
+**Phase 3 Status:** House Rules implementation is underway. 2 of 5 rules complete (Stacking, Draw to Match) with comprehensive tests and full implementations. Test infrastructure ready for remaining 3 rules.
 
-**Recommended Next Features:**
-1. **Player Management** (Phase 2 leftovers):
+**Immediate Priority (Recommended Order):**
+
+1. **Remaining House Rules** (Phase 3 continuation) - 3-4 hours each:
+   - **Seven Swap** — Implement next (moderate complexity, hand-swap pattern)
+   - **Zero Rotation** — Implement after Seven Swap (similar pattern)
+   - **Jump-In** — Implement last (most complex due to rule interactions)
+   - See [docs/HOUSE_RULES/RULE_DETAILS.md](docs/HOUSE_RULES/RULE_DETAILS.md) for implementation guide
+   - See [docs/HOUSE_RULES/TESTING_STRATEGY.md](docs/HOUSE_RULES/TESTING_STRATEGY.md) for test status
+
+2. **Player Management** (Phase 2 leftovers) - 2-3 hours:
    - Leave game functionality (before game starts)
    - Forfeit game functionality (during game)
    - Handle forfeited players gracefully
-   
-2. **House Rules Implementation** (Phase 3):
-   - Start with Stacking (most popular)
-   - Then Jump-In
-   - Seven Swap and Zero Rotation later
-   
-3. **Social Features** (Phase 4):
-   - Enhanced lobby page with public game browsing
+   - Auto-forfeit inactive players (timeout mechanism)
+
+3. **Enhanced Lobby** (Phase 4 early):
+   - Browse public games with filters
+   - See player counts, house rules enabled
+   - Quick join from dashboard
+
+4. **Social Features** (Phase 4):
    - Friend system
    - Game invitations
+   - In-game chat
 
-**Quick Wins:**
+**Quick Wins (1-2 hours each):**
 - Implement forfeit/leave game functionality
 - Add "Play Again" / rematch functionality
 - Build enhanced `/lobby` page for browsing public games
+- Add "spectator mode" where users can watch ongoing games
 
-**For Questions/Planning:**
-- Refer to [DESIGN.md](DESIGN.md) for architecture details
-- Refer to [GAME_RULES.md](GAME_RULES.md) for official rules
-- Refer to [.github/copilot-instructions.md](.github/copilot-instructions.md) for development conventions
+**Documentation & Setup:**
+- Documentation reorganized for three audiences: players, human developers, AI agents
+- House rules fully documented in `docs/HOUSE_RULES/` (5-file directory)
+- Error handling migrated to code-based approach (ERROR_MIGRATION_GUIDE.md)
+- Comprehensive test structure in place (68+ unit + 20+ integration tests)
+
+**For Implementation Guidance:**
+- **Architecture:** [DESIGN.md](DESIGN.md)
+- **Game Rules:** [GAME_RULES.md](GAME_RULES.md)
+- **House Rules Implementation:** [docs/HOUSE_RULES/RULE_DETAILS.md](docs/HOUSE_RULES/RULE_DETAILS.md)
+- **Testing:** [TESTING.md](TESTING.md)
+- **Development Patterns:** [.github/copilot-instructions.md](.github/copilot-instructions.md)
 
 ---
 
-**Last Updated:** 2026-02-02 (Phase 2 Complete)
+**Last Updated:** 2026-02-08 (Phase 3 In Progress: 2/5 House Rules Complete)
