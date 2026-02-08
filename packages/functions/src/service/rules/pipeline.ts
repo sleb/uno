@@ -1,5 +1,9 @@
 import { validateDependencies } from "./dependency-validation";
 import { validateEffect } from "./effect-validation";
+import {
+  withRuleErrorHandling,
+  withRuleErrorHandlingAsync,
+} from "./rule-error-handling";
 import type { RulePipeline, RulePipelinePhase } from "./registry";
 import type { RuleContext, RuleResult } from "./types";
 
@@ -35,11 +39,21 @@ export const applyRulePhase = (
     }
 
     if (shouldValidate) {
-      rule.validate?.(context);
+      withRuleErrorHandling(
+        rule.name,
+        "validate",
+        () => rule.validate?.(context),
+        context,
+      );
     }
 
     if (shouldApply) {
-      const result = rule.apply(context);
+      const result = withRuleErrorHandling(
+        rule.name,
+        "apply",
+        () => rule.apply(context),
+        context,
+      );
 
       // Validate effects have valid field names
       for (const effect of result.effects) {
@@ -95,7 +109,12 @@ export const applyFinalizePhase = async (
     }
 
     if (rule.finalize) {
-      const result = await rule.finalize(context);
+      const result = await withRuleErrorHandlingAsync(
+        rule.name,
+        "finalize",
+        () => rule.finalize?.(context),
+        context,
+      );
 
       // Validate effects have valid field names
       for (const effect of result.effects) {
