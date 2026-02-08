@@ -1,5 +1,6 @@
 export * from "./card-playable-rule";
 export * from "./dependency-validation";
+export * from "./documentation-generator";
 export * from "./draw-action-apply-rule";
 export * from "./draw-action-validate-rule";
 export * from "./pass-action-apply-rule";
@@ -7,6 +8,7 @@ export * from "./pass-action-validate-rule";
 export * from "./pipeline";
 export * from "./play-action-rule";
 export * from "./registry";
+export * from "./rule-documentation";
 export * from "./turn-ownership-rule";
 export * from "./types";
 export * from "./wild-color-rule";
