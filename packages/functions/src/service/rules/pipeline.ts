@@ -40,7 +40,12 @@ export const applyRulePhase = (
         validateEffect(effect);
       }
 
-      effects.push(...result.effects);
+      const taggedEffects = result.effects.map((effect) => ({
+        ...effect,
+        sourceRule: rule.name,
+      }));
+
+      effects.push(...taggedEffects);
       cardsDrawn = [...cardsDrawn, ...result.cardsDrawn];
     }
   }
@@ -86,7 +91,12 @@ export const applyFinalizePhase = async (
         validateEffect(effect);
       }
 
-      effects.push(...result.effects);
+      const taggedEffects = result.effects.map((effect) => ({
+        ...effect,
+        sourceRule: rule.name,
+      }));
+
+      effects.push(...taggedEffects);
       cardsDrawn = [...cardsDrawn, ...result.cardsDrawn];
     }
   }

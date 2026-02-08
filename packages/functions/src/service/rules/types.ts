@@ -38,18 +38,21 @@ export type RuleContext = {
 export type UpdateGameEffect = {
   type: "update-game";
   updates: Record<string, unknown>;
+  sourceRule?: string;
 };
 
 export type UpdatePlayerEffect = {
   type: "update-player";
   playerId: string;
   updates: Record<string, unknown>;
+  sourceRule?: string;
 };
 
 export type UpdateHandEffect = {
   type: "update-hand";
   playerId: string;
   hand: Card[];
+  sourceRule?: string;
 };
 
 export type SetWinnerEffect = {
@@ -61,6 +64,7 @@ export type SetWinnerEffect = {
     gamePlayers: Record<string, GamePlayerData>;
     userDataMap: Record<string, any>;
   };
+  sourceRule?: string;
 };
 
 export type EmitEventsEffect = {
@@ -69,6 +73,7 @@ export type EmitEventsEffect = {
     type: string;
     payload?: Record<string, unknown>;
   }>;
+  sourceRule?: string;
 };
 
 export type RuleEffect =

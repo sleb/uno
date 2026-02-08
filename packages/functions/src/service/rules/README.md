@@ -246,11 +246,15 @@ async finalize(ctx: RuleContext): Promise<RuleResult> {
 - Effects are aggregated and applied together
 
 ### Conflict Detection
-The pipeline detects when multiple rules update the same field:
+The pipeline detects when multiple rules update the same field.
+
+- If values differ, it throws with rule names included (transaction rolls back).
+- If values are identical, it allows the update (last-write-wins).
+
+Example error:
 ```
-Effect conflict: multiple rules updating game.mustDraw
+Effect conflict: game.mustDraw updated by apply-card-effect-rule and draw-action-apply-rule with different values
 ```
-Warnings are logged; last-write-wins semantics apply.
 
 ---
 

@@ -22,7 +22,7 @@ import type {
 import { db } from "../firebase";
 import { DECK_SIZE, generateCardAtIndex } from "./deck-utils";
 import { drawCardsFromDeck, generateDeckSeed } from "./draw-utils";
-import type { RuleContext } from "./rules";
+import type { RuleContext, RuleEffect } from "./rules";
 import {
   applyFinalizePhase,
   applyRulePhase,
@@ -136,6 +136,117 @@ export const getPlayerHands = async (
   }
 
   return hands;
+};
+
+const sortValueForCompare = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(sortValueForCompare);
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).sort(
+      ([left], [right]) => left.localeCompare(right),
+    );
+    const sorted: Record<string, unknown> = {};
+    for (const [key, entryValue] of entries) {
+      sorted[key] = sortValueForCompare(entryValue);
+    }
+    return sorted;
+  }
+
+  return value;
+};
+
+const stableJsonStringify = (value: unknown): string => {
+  if (value === undefined) {
+    return "undefined";
+  }
+  return JSON.stringify(sortValueForCompare(value));
+};
+
+const getEffectSourceRule = (effect: RuleEffect): string => {
+  return effect.sourceRule ?? "unknown-rule";
+};
+
+export const detectEffectConflicts = (effects: RuleEffect[]): {
+  gameUpdates: Record<string, unknown>;
+  playerUpdates: Record<string, Record<string, unknown>>;
+  handUpdates: Record<string, Card[]>;
+  winnerId?: string;
+  preFetchedData?: any;
+} => {
+  const gameUpdates: Record<string, unknown> = {};
+  const playerUpdates: Record<string, Record<string, unknown>> = {};
+  const handUpdates: Record<string, Card[]> = {};
+  let winnerId: string | undefined;
+  let preFetchedData: any;
+
+  const gameUpdateSources = new Map<
+    string,
+    { valueKey: string; sourceRule: string }
+  >();
+  const playerUpdateSources = new Map<
+    string,
+    Map<string, { valueKey: string; sourceRule: string }>
+  >();
+  const handUpdateSources = new Map<
+    string,
+    { valueKey: string; sourceRule: string }
+  >();
+
+  for (const effect of effects) {
+    if (effect.type === "update-game") {
+      const sourceRule = getEffectSourceRule(effect);
+      for (const [key, value] of Object.entries(effect.updates)) {
+        const valueKey = stableJsonStringify(value);
+        const existing = gameUpdateSources.get(key);
+        if (existing && existing.valueKey !== valueKey) {
+          throw new Error(
+            `Effect conflict: game.${key} updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+          );
+        }
+        gameUpdateSources.set(key, { valueKey, sourceRule });
+        gameUpdates[key] = value;
+      }
+    } else if (effect.type === "update-player") {
+      const sourceRule = getEffectSourceRule(effect);
+      if (!playerUpdates[effect.playerId]) {
+        playerUpdates[effect.playerId] = {};
+      }
+      if (!playerUpdateSources.has(effect.playerId)) {
+        playerUpdateSources.set(effect.playerId, new Map());
+      }
+
+      const playerSources = playerUpdateSources.get(effect.playerId)!;
+      for (const [key, value] of Object.entries(effect.updates)) {
+        const valueKey = stableJsonStringify(value);
+        const existing = playerSources.get(key);
+        if (existing && existing.valueKey !== valueKey) {
+          throw new Error(
+            `Effect conflict: players[${effect.playerId}].${key} updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+          );
+        }
+        playerSources.set(key, { valueKey, sourceRule });
+        playerUpdates[effect.playerId][key] = value;
+      }
+    } else if (effect.type === "update-hand") {
+      const sourceRule = getEffectSourceRule(effect);
+      const valueKey = stableJsonStringify(effect.hand);
+      const existing = handUpdateSources.get(effect.playerId);
+      if (existing && existing.valueKey !== valueKey) {
+        throw new Error(
+          `Effect conflict: playerHands[${effect.playerId}] updated by ${existing.sourceRule} and ${sourceRule} with different values (previous: ${existing.valueKey}, current: ${valueKey})`,
+        );
+      }
+      handUpdateSources.set(effect.playerId, { valueKey, sourceRule });
+      handUpdates[effect.playerId] = effect.hand;
+    } else if (effect.type === "set-winner") {
+      winnerId = effect.winnerId;
+      preFetchedData = effect.preFetchedData;
+    }
+  }
+
+  return { gameUpdates, playerUpdates, handUpdates, winnerId, preFetchedData };
 };
 
 const getGamePlayers = async (
@@ -553,56 +664,13 @@ const runGameAction = async ({
     // Collect all effects
     const allEffects = [...applyResult.effects, ...finalizeResult.effects];
 
-    // Apply effects to Firestore with conflict detection
-    const gameUpdates: Record<string, unknown> = {};
-    const playerUpdates: Record<string, Record<string, unknown>> = {};
-    const handUpdates: Record<string, Card[]> = {};
-    let winnerId: string | undefined;
-    let preFetchedData: any;
-
-    // Track effect sources for conflict detection
-    const gameUpdateSources = new Map<string, string>();
-    const playerUpdateSources = new Map<string, Map<string, string>>();
-
-    for (const effect of allEffects) {
-      if (effect.type === "update-game") {
-        // Detect conflicts in game updates
-        for (const [key] of Object.entries(effect.updates)) {
-          if (gameUpdateSources.has(key)) {
-            console.warn(
-              `Effect conflict: multiple rules updating game.${key} (previous: ${gameUpdateSources.get(key)}, current: ${effect.type})`,
-            );
-          }
-          gameUpdateSources.set(key, effect.type);
-        }
-        Object.assign(gameUpdates, effect.updates);
-      } else if (effect.type === "update-player") {
-        if (!playerUpdates[effect.playerId]) {
-          playerUpdates[effect.playerId] = {};
-        }
-        if (!playerUpdateSources.has(effect.playerId)) {
-          playerUpdateSources.set(effect.playerId, new Map());
-        }
-
-        // Detect conflicts in player updates
-        const playerSources = playerUpdateSources.get(effect.playerId)!;
-        for (const [key] of Object.entries(effect.updates)) {
-          if (playerSources.has(key)) {
-            console.warn(
-              `Effect conflict: multiple rules updating players[${effect.playerId}].${key} (previous: ${playerSources.get(key)}, current: ${effect.type})`,
-            );
-          }
-          playerSources.set(key, effect.type);
-        }
-
-        Object.assign(playerUpdates[effect.playerId], effect.updates);
-      } else if (effect.type === "update-hand") {
-        handUpdates[effect.playerId] = effect.hand;
-      } else if (effect.type === "set-winner") {
-        winnerId = effect.winnerId;
-        preFetchedData = effect.preFetchedData;
-      }
-    }
+    const {
+      gameUpdates,
+      playerUpdates,
+      handUpdates,
+      winnerId,
+      preFetchedData,
+    } = detectEffectConflicts(allEffects);
 
     // Write to Firestore
     if (Object.keys(gameUpdates).length > 0) {

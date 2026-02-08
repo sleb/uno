@@ -15,11 +15,12 @@ const createMockContext = (
     state: {
       status: "in-progress",
       currentTurnPlayerId: "player1",
-      direction: 1,
+      direction: "clockwise",
       mustDraw: 0,
       currentColor: null,
       discardPile: [],
       deckSeed: "seed",
+      drawPileCount: 80,
     },
   } as GameData,
   player: { cardCount: 7 } as GamePlayerData,
@@ -51,7 +52,10 @@ describe("apply-card-effect-rule", () => {
   test("should calculate next player for normal card", () => {
     const ctx = createMockContext({
       playerHand: {
-        hand: [{ kind: "number", color: "red", value: 5 }],
+        hand: [
+          { kind: "number", color: "red", value: 5 },
+          { kind: "number", color: "blue", value: 3 },
+        ],
       } as PlayerHandData,
     });
 
@@ -63,7 +67,7 @@ describe("apply-card-effect-rule", () => {
       expect(result.effects[0].updates["state.currentTurnPlayerId"]).toBe(
         "player2",
       );
-      expect(result.effects[0].updates["state.direction"]).toBe(1);
+      expect(result.effects[0].updates["state.direction"]).toBe("clockwise");
       expect(result.effects[0].updates["state.mustDraw"]).toBe(0);
       expect(result.effects[0].updates["state.currentColor"]).toBeNull();
     }
@@ -72,7 +76,10 @@ describe("apply-card-effect-rule", () => {
   test("should calculate next player for skip card", () => {
     const ctx = createMockContext({
       playerHand: {
-        hand: [{ kind: "special", color: "red", value: "skip" }],
+        hand: [
+          { kind: "special", color: "red", value: "skip" },
+          { kind: "number", color: "blue", value: 3 },
+        ],
       } as PlayerHandData,
     });
 
@@ -89,7 +96,10 @@ describe("apply-card-effect-rule", () => {
   test("should handle reverse card", () => {
     const ctx = createMockContext({
       playerHand: {
-        hand: [{ kind: "special", color: "red", value: "reverse" }],
+        hand: [
+          { kind: "special", color: "red", value: "reverse" },
+          { kind: "number", color: "blue", value: 3 },
+        ],
       } as PlayerHandData,
     });
 
@@ -97,7 +107,9 @@ describe("apply-card-effect-rule", () => {
 
     expect(result.effects).toHaveLength(1);
     if (result.effects[0].type === "update-game") {
-      expect(result.effects[0].updates["state.direction"]).toBe(-1);
+      expect(result.effects[0].updates["state.direction"]).toBe(
+        "counter-clockwise",
+      );
       expect(result.effects[0].updates["state.currentTurnPlayerId"]).toBe(
         "player3",
       ); // Direction reversed
@@ -112,15 +124,19 @@ describe("apply-card-effect-rule", () => {
         state: {
           status: "in-progress",
           currentTurnPlayerId: "player1",
-          direction: 1,
+          direction: "clockwise",
           mustDraw: 0,
           currentColor: null,
           discardPile: [],
           deckSeed: "seed",
+          drawPileCount: 80,
         },
       } as GameData,
       playerHand: {
-        hand: [{ kind: "special", color: "red", value: "reverse" }],
+        hand: [
+          { kind: "special", color: "red", value: "reverse" },
+          { kind: "number", color: "blue", value: 3 },
+        ],
       } as PlayerHandData,
     });
 
@@ -131,14 +147,19 @@ describe("apply-card-effect-rule", () => {
       expect(result.effects[0].updates["state.currentTurnPlayerId"]).toBe(
         "player1",
       ); // Skip back to player1
-      expect(result.effects[0].updates["state.direction"]).toBe(-1);
+      expect(result.effects[0].updates["state.direction"]).toBe(
+        "counter-clockwise",
+      );
     }
   });
 
   test("should handle Draw Two card", () => {
     const ctx = createMockContext({
       playerHand: {
-        hand: [{ kind: "special", color: "red", value: "draw-two" }],
+        hand: [
+          { kind: "special", color: "red", value: "draw2" },
+          { kind: "number", color: "blue", value: 3 },
+        ],
       } as PlayerHandData,
     });
 
