@@ -22,12 +22,10 @@ import type {
 import { db } from "../firebase";
 import { DECK_SIZE, generateCardAtIndex } from "./deck-utils";
 import { drawCardsFromDeck, generateDeckSeed } from "./draw-utils";
+import { measureAsync, measureSync } from "./perf-metrics";
+import { getDefaultCachedPipeline } from "./pipeline-cache";
 import type { RuleContext, RuleEffect } from "./rules";
-import {
-  applyFinalizePhase,
-  applyRulePhase,
-  createDefaultRulePipeline,
-} from "./rules";
+import { applyFinalizePhase, applyRulePhase } from "./rules";
 import { calculateHandScore } from "./score-utils";
 
 export const getDoc = async (
@@ -168,7 +166,9 @@ const getEffectSourceRule = (effect: RuleEffect): string => {
   return effect.sourceRule ?? "unknown-rule";
 };
 
-export const detectEffectConflicts = (effects: RuleEffect[]): {
+export const detectEffectConflicts = (
+  effects: RuleEffect[],
+): {
   gameUpdates: Record<string, unknown>;
   playerUpdates: Record<string, Record<string, unknown>>;
   handUpdates: Record<string, Card[]>;
@@ -635,14 +635,22 @@ const runGameAction = async ({
 }): Promise<{ winnerId?: string; cardsDrawn: Card[] }> => {
   return await db.runTransaction(async (t) => {
     // IMPORTANT: Do ALL reads before ANY writes (Firestore transaction requirement)
-    const game = await getGame(gameId, t);
-    const playerHand = await getPlayerHand(gameId, playerId, t);
-    const player = await getGamePlayer(gameId, playerId, t);
+    const game = await measureAsync("reads:game", () => getGame(gameId, t));
+    const playerHand = await measureAsync("reads:playerHand", () =>
+      getPlayerHand(gameId, playerId, t),
+    );
+    const player = await measureAsync("reads:player", () =>
+      getGamePlayer(gameId, playerId, t),
+    );
 
     // Fetch all player hands for rules (needed by finalize-rule and draw logic)
-    const allPlayerHands = await getPlayerHands(gameId, game.players, t);
+    const allPlayerHands = await measureAsync("reads:allPlayerHands", () =>
+      getPlayerHands(gameId, game.players, t),
+    );
 
-    const pipeline = createDefaultRulePipeline();
+    const pipeline = measureSync("pipeline:cache", () =>
+      getDefaultCachedPipeline(),
+    );
     const ruleContext: RuleContext = {
       gameId,
       playerId,
@@ -656,10 +664,18 @@ const runGameAction = async ({
     };
 
     // Execute rule phases
-    applyRulePhase(pipeline, "pre-validate", ruleContext);
-    applyRulePhase(pipeline, "validate", ruleContext);
-    const applyResult = applyRulePhase(pipeline, "apply", ruleContext);
-    const finalizeResult = await applyFinalizePhase(pipeline, ruleContext);
+    measureSync("rules:pre-validate", () =>
+      applyRulePhase(pipeline, "pre-validate", ruleContext),
+    );
+    measureSync("rules:validate", () =>
+      applyRulePhase(pipeline, "validate", ruleContext),
+    );
+    const applyResult = measureSync("rules:apply", () =>
+      applyRulePhase(pipeline, "apply", ruleContext),
+    );
+    const finalizeResult = await measureAsync("rules:finalize", () =>
+      applyFinalizePhase(pipeline, ruleContext),
+    );
 
     // Collect all effects
     const allEffects = [...applyResult.effects, ...finalizeResult.effects];
@@ -670,26 +686,36 @@ const runGameAction = async ({
       handUpdates,
       winnerId,
       preFetchedData,
-    } = detectEffectConflicts(allEffects);
+    } = measureSync("effects:conflict-detection", () =>
+      detectEffectConflicts(allEffects),
+    );
 
     // Write to Firestore
-    if (Object.keys(gameUpdates).length > 0) {
-      t.update(gameRef(gameId), gameUpdates);
-    }
-
-    for (const [targetPlayerId, updates] of Object.entries(playerUpdates)) {
-      if (Object.keys(updates).length > 0) {
-        t.update(playerRef(gameId, targetPlayerId), updates);
+    measureSync("writes:game", () => {
+      if (Object.keys(gameUpdates).length > 0) {
+        t.update(gameRef(gameId), gameUpdates);
       }
-    }
+    });
 
-    for (const [targetPlayerId, hand] of Object.entries(handUpdates)) {
-      t.update(playerHandRef(gameId, targetPlayerId), { hand });
-    }
+    measureSync("writes:players", () => {
+      for (const [targetPlayerId, updates] of Object.entries(playerUpdates)) {
+        if (Object.keys(updates).length > 0) {
+          t.update(playerRef(gameId, targetPlayerId), updates);
+        }
+      }
+    });
+
+    measureSync("writes:hands", () => {
+      for (const [targetPlayerId, hand] of Object.entries(handUpdates)) {
+        t.update(playerHandRef(gameId, targetPlayerId), { hand });
+      }
+    });
 
     // Finalize game if there's a winner
     if (winnerId && preFetchedData) {
-      await finalizeGame(gameId, winnerId, t, preFetchedData);
+      await measureAsync("finalize:game", () =>
+        finalizeGame(gameId, winnerId, t, preFetchedData),
+      );
     }
 
     return {
