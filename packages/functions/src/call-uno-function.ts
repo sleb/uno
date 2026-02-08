@@ -19,6 +19,8 @@ export const callUno = async (
     );
   }
 
+  const uid = request.auth.uid;
+
   try {
     const { gameId } = CallUnoRequestSchema.parse(request.data);
     return await _callUno(gameId, uid);
