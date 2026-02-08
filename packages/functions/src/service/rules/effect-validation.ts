@@ -1,5 +1,18 @@
+import {
+  CardSchema,
+  GameDataSchema,
+  GamePlayerDataSchema,
+  PlayerHandDataSchema,
+  UserDataSchema,
+} from "@uno/shared";
 import { z } from "zod";
-import type { UpdateGameEffect, UpdatePlayerEffect } from "./types";
+import type {
+  EmitEventsEffect,
+  SetWinnerEffect,
+  UpdateGameEffect,
+  UpdateHandEffect,
+  UpdatePlayerEffect,
+} from "./types";
 
 /**
  * Zod schemas for validating effect updates against known data structures
@@ -57,6 +70,20 @@ const PlayerFieldSchema = z.enum([
   "gameStats.cardsDrawn",
 ]);
 
+const isStrictValidation = (): boolean => {
+  return (
+    process.env.UNO_STRICT_RULE_VALIDATION === "true" ||
+    process.env.NODE_ENV === "test"
+  );
+};
+
+const reportValidationIssue = (message: string): void => {
+  if (isStrictValidation()) {
+    throw new Error(message);
+  }
+  console.warn(message);
+};
+
 /**
  * Validates that an update-game effect has valid field names
  * Logs warnings for any unknown fields (allows last-write-wins but warns)
@@ -66,7 +93,7 @@ export const validateGameEffect = (effect: UpdateGameEffect): void => {
     try {
       GameFieldSchema.parse(key);
     } catch (_e) {
-      console.warn(
+      reportValidationIssue(
         `[Rule Validation] Unknown game field: "${key}" - may not exist in GameData`,
       );
     }
@@ -82,10 +109,62 @@ export const validatePlayerEffect = (effect: UpdatePlayerEffect): void => {
     try {
       PlayerFieldSchema.parse(key);
     } catch (_e) {
-      console.warn(
+      reportValidationIssue(
         `[Rule Validation] Unknown player field: "${key}" - may not exist in GamePlayerData`,
       );
     }
+  }
+};
+
+const HandSchema = z.array(CardSchema);
+
+export const validateHandEffect = (effect: UpdateHandEffect): void => {
+  const result = HandSchema.safeParse(effect.hand);
+  if (!result.success) {
+    reportValidationIssue(
+      `[Rule Validation] Invalid hand update for ${effect.playerId}: ${result.error.message}`,
+    );
+  }
+};
+
+const SetWinnerEffectSchema = z
+  .object({
+    winnerId: z.string(),
+    preFetchedData: z.object({
+      game: GameDataSchema,
+      playerHands: z.record(PlayerHandDataSchema),
+      gamePlayers: z.record(GamePlayerDataSchema),
+      userDataMap: z.record(UserDataSchema),
+    }),
+  })
+  .passthrough();
+
+export const validateSetWinnerEffect = (effect: SetWinnerEffect): void => {
+  const result = SetWinnerEffectSchema.safeParse(effect);
+  if (!result.success) {
+    reportValidationIssue(
+      `[Rule Validation] Invalid set-winner effect: ${result.error.message}`,
+    );
+  }
+};
+
+const PlainObjectSchema = z
+  .record(z.unknown())
+  .refine((value) => !Array.isArray(value), {
+    message: "Payload must be an object",
+  });
+
+const EmitEventSchema = z.object({
+  type: z.string(),
+  payload: PlainObjectSchema.optional(),
+});
+
+export const validateEmitEventsEffect = (effect: EmitEventsEffect): void => {
+  const result = z.array(EmitEventSchema).safeParse(effect.events);
+  if (!result.success) {
+    reportValidationIssue(
+      `[Rule Validation] Invalid emit-events effect: ${result.error.message}`,
+    );
   }
 };
 
@@ -98,5 +177,11 @@ export const validateEffect = (effect: any): void => {
     validateGameEffect(effect);
   } else if (effect.type === "update-player") {
     validatePlayerEffect(effect);
+  } else if (effect.type === "update-hand") {
+    validateHandEffect(effect);
+  } else if (effect.type === "set-winner") {
+    validateSetWinnerEffect(effect);
+  } else if (effect.type === "emit-events") {
+    validateEmitEventsEffect(effect);
   }
 };
