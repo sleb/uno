@@ -3,6 +3,8 @@
     "bun": true,
     "firebase": true,
     "lsof": true,
-    "npx biome": true
+    "npx biome": true,
+    "biome": true,
+    "tsc": true
   }
 }

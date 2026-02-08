@@ -109,7 +109,7 @@ export const errorCodeToHttpsErrorCode: Record<ErrorCode, string> = {
  * This is the contract between backend and frontend for error handling.
  */
 export const ErrorResponseSchema = z.object({
-  code: z.enum(Object.values(ErrorCode) as [ErrorCode, ...ErrorCode[]]),
+  code: z.string(), // Allow any string code for forward compatibility
   message: z.string(),
   details: z.record(z.unknown()).optional(),
 });

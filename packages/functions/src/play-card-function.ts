@@ -1,11 +1,8 @@
-import {
-  type PlayCardRequest,
-  PlayCardRequestSchema,
-} from "@uno/shared";
-import { type CallableRequest } from "firebase-functions/https";
+import { type PlayCardRequest, PlayCardRequestSchema } from "@uno/shared";
+import type { CallableRequest } from "firebase-functions/https";
 import { error } from "firebase-functions/logger";
 import z from "zod";
-import { safeguardError, requireAuth } from "./service/errors";
+import { requireAuth, safeguardError } from "./service/errors";
 import { playCard as _playCard } from "./service/game-service";
 
 export const playCard = async (
