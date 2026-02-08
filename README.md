@@ -2,15 +2,46 @@
 
 A Bun-based monorepo for **Uno**, an asynchronous multiplayer card game using Firebase and React. Players can create games, invite others, and play in real-time with real-time Firestore updates.
 
-## Documentation
+## Documentation by Audience
 
-- **[DESIGN.md](DESIGN.md)** - Architecture and data model design
-- **[GAME_RULES.md](GAME_RULES.md)** - Official UNO rules and house rules variants
-- **[ROADMAP.md](ROADMAP.md)** - Project roadmap, implementation status, and planned features
-- **[TESTING_SUMMARY.md](TESTING_SUMMARY.md)** - Complete testing overview (48 tests)
-- **[E2E_TESTS.md](E2E_TESTS.md)** - End-to-end testing guide with Playwright
-- **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** - Integration testing guide for Cloud Functions
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Development guide for AI assistants
+Pick your path based on what you're doing:
+
+### 🎮 For Players
+Want to understand the game and its rules?
+- **[GAME_RULES.md](GAME_RULES.md)** — Official UNO rules + optional house rules variants
+
+### 👨‍💻 For Human Contributors (Developers)
+Building features or fixing bugs?
+1. Start here: **[README.md](README.md)** (this file) — Quick start & architecture overview
+2. Deep dive: **[DESIGN.md](DESIGN.md)** — Data models, architecture, Firebase schema
+3. Testing: **[TESTING.md](TESTING.md)** — How to run tests (unit, integration, e2e)
+4. Features: **[ROADMAP.md](ROADMAP.md)** — Current status and planned features
+5. Optional: **[docs/HOUSE_RULES/](docs/HOUSE_RULES/)** — Building house rules
+
+### 🤖 For AI Agents (Codebase Automation)
+Working on this codebase with Copilot?
+1. Start here: **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — Development patterns and conventions
+2. Game architecture: **[DESIGN.md](DESIGN.md)** — Data models and structure
+3. Testing patterns: **[TESTING.md](TESTING.md)** — How we test
+4. House rules: **[docs/HOUSE_RULES/RULE_DETAILS.md](docs/HOUSE_RULES/RULE_DETAILS.md)** — Implementation patterns for rules
+5. Error handling: **[ERROR_HANDLING.md](ERROR_HANDLING.md)** — Error system design
+
+### 📚 All Documentation
+- **[DESIGN.md](DESIGN.md)** — Architecture, data models, Firebase schema
+- **[GAME_RULES.md](GAME_RULES.md)** — Official rules and optional house rules
+- **[TESTING.md](TESTING.md)** — Testing guide (unit, integration, e2e)
+- **[INTEGRATION_TESTS.md](INTEGRATION_TESTS.md)** — Cloud Functions testing details
+- **[E2E_TESTS.md](E2E_TESTS.md)** — Playwright e2e testing guide
+- **[ERROR_HANDLING.md](ERROR_HANDLING.md)** — Error system and error codes
+- **[ERROR_MIGRATION_GUIDE.md](ERROR_MIGRATION_GUIDE.md)** — Migrating to error codes
+- **[ROADMAP.md](ROADMAP.md)** — Project status and roadmap
+- **[docs/HOUSE_RULES/](docs/HOUSE_RULES/)** — Complete house rules documentation
+  - [README.md](docs/HOUSE_RULES/README.md) — House rules overview
+  - [INTERACTIONS.md](docs/HOUSE_RULES/INTERACTIONS.md) — How rules interact
+  - [TESTING_STRATEGY.md](docs/HOUSE_RULES/TESTING_STRATEGY.md) — Test structure
+  - [IMPLEMENTATION_STATUS.md](docs/HOUSE_RULES/IMPLEMENTATION_STATUS.md) — What's done, what's pending
+  - [RULE_DETAILS.md](docs/HOUSE_RULES/RULE_DETAILS.md) — Building new rules
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — AI development guide
 
 ## Project Structure
 
@@ -77,88 +108,30 @@ bun build src/index.ts --outdir dist --target node --format cjs --external fireb
 
 ## Testing
 
-### Integration Tests
+See **[TESTING.md](TESTING.md)** for comprehensive testing guide including unit, integration, and e2e tests.
 
-Cloud Functions are tested with Bun's test runner and Firebase emulators.
-
-**Running Tests:**
+### Quick Start
 
 ```bash
-# Run all tests (starts Firestore emulator automatically)
-firebase emulators:exec --only firestore "bun test packages/functions"
+# Run all tests
+bun test
 
 # Run specific test file
 bun test packages/functions/src/service/card-validation.test.ts
 
-# Watch mode
-bun test --watch packages/functions
+# Run with Firebase emulator (integration tests)
+firebase emulators:start
+bun test packages/functions
 ```
 
-**Test Coverage:**
+### Test Coverage
 
-- ✅ Card validation logic (11 tests)
-- ✅ Score calculation (13 tests)
-- ✅ Deck generation (3 tests)
-- ✅ Game finalization with Firestore (2 integration tests)
-- **Total**: 36/36 passing (100%)
+- ✅ **68+ unit tests** - Fast feedback, no emulator needed
+- ✅ **20+ integration tests** - Full game flow with Firebase
+- ✅ **5 E2E tests** - Real browser gameplay
+- ✅ **House rules tests** - 51 tests for Stacking, 9 tests for Draw to Match
 
-See [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md) for detailed documentation.
-
-### E2E Tests
-
-The project includes comprehensive end-to-end tests for two-player gameplay using Playwright and Firebase Auth emulator.
-
-**Prerequisites:**
-
-- Playwright browsers installed: `bunx playwright install`
-- Pre-configured test users in `.emulator` directory
-
-**Running E2E Tests:**
-
-```bash
-# Verify test users are configured
-bun run verify:emulator-users
-
-# Run all e2e tests (starts emulators automatically)
-bun run test:e2e
-
-# Run with UI mode for interactive debugging
-bun run test:e2e:ui
-```
-
-**Test Coverage:**
-
-- ✅ User authentication via Firebase Auth emulator
-- ✅ Game creation, joining, and starting
-- ✅ Initial card dealing (7 cards per player)
-- ✅ Turn-based card playing and drawing
-- ✅ Real-time synchronization across multiple clients
-- ✅ Turn enforcement (non-turn player cannot play)
-- ✅ Discard pile updates
-
-See [E2E_TESTS.md](E2E_TESTS.md) for detailed documentation.
-
-**Test Users:**
-
-- `user.one@example.com` (User One)
-- `user.two@example.com` (User Two)
-
-These accounts are pre-configured in the `.emulator` directory and automatically loaded when tests run.
-
-### Unit Tests
-
-```bash
-# Run all unit tests
-bun test
-
-# Run specific test file
-bun test packages/functions/src/service/game-service.test.ts
-
-# Watch mode
-bun test --watch
-```
-
-Integration and unit tests use Bun's built-in test runner (no Jest or Vitest required).
+See [TESTING.md](TESTING.md), [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md), and [E2E_TESTS.md](E2E_TESTS.md) for details.
 
 ## Architecture
 
