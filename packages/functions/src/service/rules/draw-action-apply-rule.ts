@@ -109,9 +109,44 @@ export const createDrawActionApplyRule = (): Rule => ({
 
     const newHand = [...playerHand.hand, ...drawnCards];
     const currentIndex = game.players.indexOf(playerId);
-    const nextPlayerId = isPenaltyDraw
-      ? getNextPlayerId(game.players, currentIndex, game.state.direction, false)
-      : playerId;
+
+    // Determine next player:
+    // - After penalty draw: automatically pass to next player
+    // - After draw-to-match: keep turn with player (they have playable card)
+    // - After normal draw: check if drawn card is playable
+    //   - If playable: keep turn with player
+    //   - If not playable: automatically pass to next player
+    let nextPlayerId = playerId;
+    if (isPenaltyDraw) {
+      nextPlayerId = getNextPlayerId(
+        game.players,
+        currentIndex,
+        game.state.direction,
+        false,
+      );
+    } else if (!isDrawToMatchEnabled && drawnCards.length > 0) {
+      // Check if any drawn card is playable
+      const topCard = getTopCard(game.state.discardPile);
+      const hasPlayableCard = drawnCards.some((card) =>
+        isCardPlayable(
+          card,
+          topCard,
+          game.state.currentColor,
+          0,
+          game.config.houseRules,
+        ),
+      );
+
+      // If no playable cards drawn, automatically pass to next player
+      if (!hasPlayableCard) {
+        nextPlayerId = getNextPlayerId(
+          game.players,
+          currentIndex,
+          game.state.direction,
+          false,
+        );
+      }
+    }
 
     return {
       effects: [

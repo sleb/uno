@@ -529,6 +529,78 @@ describe("draw-then-play integration tests", () => {
     );
   });
 
+  test("should auto-advance turn after drawing unplayable card (no manual pass needed)", async () => {
+    await createUser("player1", "Alice");
+    await createUser("player2", "Bob");
+    await createUser("player3", "Charlie");
+    await createInProgressGame("game1", ["player1", "player2", "player3"]);
+
+    // Set up initial state:
+    // Discard: red 5
+    // Player1: no red or yellow cards (high chance drawn card won't be playable)
+    await db
+      .collection("games")
+      .doc("game1")
+      .update({
+        "state.discardPile": [{ kind: "number", color: "red", value: 5 }],
+      });
+
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .set({
+        hand: [
+          { kind: "number", color: "blue", value: 3 },
+          { kind: "number", color: "blue", value: 8 },
+          { kind: "number", color: "green", value: 7 },
+        ],
+      });
+    await db
+      .collection("games")
+      .doc("game1")
+      .collection("players")
+      .doc("player1")
+      .update({ cardCount: 3 });
+
+    // Draw one card
+    await drawCard("game1", "player1", 1);
+
+    // Get game state after draw
+    const gameDoc = await db.collection("games").doc("game1").get();
+    const currentTurnAfterDraw = gameDoc.data()?.state.currentTurnPlayerId;
+
+    // The turn should have either stayed with player1 (if card is playable)
+    // or advanced to player2 (if card is not playable)
+    // Either way, it should be one of these two players, not something else
+    expect(
+      currentTurnAfterDraw === "player1" || currentTurnAfterDraw === "player2",
+    ).toBe(true);
+
+    // Get the drawn card to check if it's playable
+    const handDoc = await db
+      .collection("games")
+      .doc("game1")
+      .collection("playerHands")
+      .doc("player1")
+      .get();
+    const hand = handDoc.data()?.hand;
+    const drawnCard = hand?.[3]; // The 4th card (index 3) should be the newly drawn card
+
+    // If the drawn card is NOT playable (not red, not yellow, not wild),
+    // the turn should have advanced to player2
+    if (
+      drawnCard &&
+      drawnCard.kind === "number" &&
+      drawnCard.color !== "red" &&
+      drawnCard.color !== "yellow"
+    ) {
+      // Card is definitely not playable
+      expect(currentTurnAfterDraw).toBe("player2");
+    }
+  });
+
   test("should advance turn automatically after penalty draw", async () => {
     await createUser("player1", "Alice");
     await createUser("player2", "Bob");

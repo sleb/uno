@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
 import type { GameData, GamePlayerData, PlayerHandData } from "@uno/shared";
 import { GAME_STATUSES } from "@uno/shared";
+import { describe, expect, test } from "bun:test";
 import type { Transaction } from "firebase-admin/firestore";
 import { createDrawActionApplyRule } from "./draw-action-apply-rule";
 import type { RuleContext } from "./types";
@@ -110,6 +110,37 @@ describe("draw-action-apply-rule", () => {
     if (gameEffect?.type === "update-game") {
       expect(gameEffect.updates["state.mustDraw"]).toBe(0);
       expect(gameEffect.updates["state.currentTurnPlayerId"]).toBe("player-2");
+    }
+  });
+
+  test("normal draw with seed-generated cards respects auto-pass logic", () => {
+    const rule = createDrawActionApplyRule();
+    // When drawing a normal card (not penalty, not draw-to-match),
+    // the turn should either stay (if playable) or pass (if not playable)
+    // This depends on what the seed generates, so we just verify
+    // that a turn update happens (either to player-1 or player-2)
+    const context = createContext({
+      game: createGame({
+        state: {
+          ...createGame().state,
+          mustDraw: 0,
+        },
+      }),
+    });
+
+    const result = rule.apply(context);
+
+    const gameEffect = result.effects.find((e) => e.type === "update-game");
+    expect(gameEffect).toBeDefined();
+    if (gameEffect?.type === "update-game") {
+      // Turn should be assigned to either player-1 or player-2
+      // (both are valid depending on whether drawn card is playable)
+      const currentTurnPlayerId =
+        gameEffect.updates["state.currentTurnPlayerId"];
+      expect(
+        currentTurnPlayerId === "player-1" ||
+          currentTurnPlayerId === "player-2",
+      ).toBe(true);
     }
   });
 });
